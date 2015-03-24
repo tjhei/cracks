@@ -10,46 +10,46 @@
 // Predictor-corrector mesh adaptivity
 // 2d code version
 
-#include <base/quadrature_lib.h>
-#include <base/logstream.h>
-#include <base/function.h>
-#include <base/utilities.h>
-#include <base/timer.h>
-#include <base/parameter_handler.h>
-#include <base/function_parser.h>
+#include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/logstream.h>
+#include <deal.II/base/function.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/timer.h>
+#include <deal.II/base/parameter_handler.h>
+#include <deal.II/base/function_parser.h>
 
-#include <lac/block_vector.h>
-#include <lac/full_matrix.h>
-#include <lac/block_sparse_matrix.h>
-#include <lac/sparse_direct.h>
-#include <lac/constraint_matrix.h>
-#include <lac/solver_gmres.h>
+#include <deal.II/lac/block_vector.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/block_sparse_matrix.h>
+#include <deal.II/lac/sparse_direct.h>
+#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/solver_gmres.h>
 
-#include <grid/tria.h>
-#include <grid/grid_generator.h>
-#include <grid/tria_accessor.h>
-#include <grid/tria_iterator.h>
-#include <grid/tria_boundary_lib.h>
-#include <grid/grid_tools.h>
-#include <grid/grid_in.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
+#include <deal.II/grid/tria_boundary_lib.h>
+#include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_in.h>
 
-#include <dofs/dof_handler.h>
-#include <dofs/dof_renumbering.h>
-#include <dofs/dof_accessor.h>
-#include <dofs/dof_tools.h>
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_renumbering.h>
+#include <deal.II/dofs/dof_accessor.h>
+#include <deal.II/dofs/dof_tools.h>
 
-#include <fe/fe_q.h>
-#include <fe/fe_dgq.h>
-#include <fe/fe_dgp.h>
-#include <fe/fe_system.h>
-#include <fe/fe_values.h>
-#include <fe/mapping_q1.h>
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_dgp.h>
+#include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q1.h>
 #include <deal.II/numerics/error_estimator.h>
 
-#include <numerics/vector_tools.h>
-#include <numerics/matrix_tools.h>
-#include <numerics/data_out.h>
-#include <numerics/solution_transfer.h>
+#include <deal.II/numerics/vector_tools.h>
+#include <deal.II/numerics/matrix_tools.h>
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/solution_transfer.h>
 
 #include <deal.II/lac/generic_linear_algebra.h>
 namespace LA
@@ -1699,7 +1699,7 @@ template <int dim>
 
 	  // Old Newton iteration values
 	  fe_values.get_function_values (rel_solution, old_solution_values);
-	  fe_values.get_function_grads (rel_solution, old_solution_grads);
+	  fe_values.get_function_gradients (rel_solution, old_solution_grads);
 	  
 	  // Old_timestep_solution values
 	  fe_values.get_function_values (rel_old_solution, old_timestep_solution_values);
@@ -2851,7 +2851,7 @@ template <int dim>
 
         fe_values.get_function_values(rel_solution,
             solution_values);
-        fe_values.get_function_grads(
+        fe_values.get_function_gradients(
             rel_solution, solution_grads);
 
         for (unsigned int q = 0; q < n_q_points; ++q)
@@ -2956,7 +2956,7 @@ template <int dim>
               fe_face_values.reinit(cell, face);
               fe_face_values.get_function_values(rel_solution,
                   face_solution_values);
-              fe_face_values.get_function_grads(rel_solution,
+              fe_face_values.get_function_gradients(rel_solution,
                   face_solution_grads);
 
               for (unsigned int q_point = 0; q_point < n_face_q_points;
@@ -3042,7 +3042,7 @@ FracturePhaseFieldProblem<dim>::compute_energy()
           }
 
         fe_values.get_function_values(rel_solution, solution_values);
-        fe_values.get_function_grads(rel_solution, solution_grads);
+        fe_values.get_function_gradients(rel_solution, solution_grads);
 
         for (unsigned int q = 0; q < n_q_points; ++q)
           {
@@ -3151,7 +3151,7 @@ template <int dim>
 	     cell->face(face)->boundary_indicator()==3)
 	   {
 	     fe_face_values.reinit (cell, face);
-	     fe_face_values.get_function_grads (rel_solution, face_solution_grads);
+	     fe_face_values.get_function_gradients (rel_solution, face_solution_grads);
 
 	     for (unsigned int q_point=0; q_point<n_face_q_points; ++q_point)
 	       {
