@@ -1,0 +1,54 @@
+# Listing of Example single edge notched test (Miehe 2010)
+# pure shear test (curved fracture)
+# --------------------------------------------------------
+
+subsection Global parameters
+  set Global pre-refinement steps	= 4
+  set Local pre-refinement steps  	= 0
+  set Adaptive refinement cycles        = 1
+
+  set Max No of timesteps  	  	= 200
+  # Miehe arbeitet mit 1.0e-5
+  set Timestep size			= 1.0e-4
+  set Timestep size to switch to	= 1.0e-4
+  set Switch timestep after steps	= 100
+
+  # active set or simple monolithic
+  set outer solver                      = active set 
+  set test case                         = miehe shear
+  set ref strategy                      = phase field
+
+  set value phase field for refinement  = 0.8
+  set Output filename	    		= solution_miehe_shear_ref_adapt_4_1_dt_1e-4_
+end
+
+subsection Problem dependent parameters
+  set K reg				= 1.0e-10*h
+  # 2.0*h
+  # 0.25 * pow(h,0.5)
+  set Eps reg				= 2*h #0.125*pow(h,0.25)
+  set Gamma penalization		= 0.0
+  set alpha time			= 0.0
+
+  # Material and problem-rhs parameters
+  set Pressure				= 0.0
+  set Fracture toughness G_c		= 2.7
+  set Density solid	 		= 1.0
+  set Poisson ratio nu			= 0.2
+  set E modulus	    			= 1e+3
+  set Lame mu				= 80.77e+3
+  set Lame lambda			= 121.15e+3	  
+
+end 
+
+subsection Solver parameters
+  set Use Direct Inner Solver		   = true
+  set Newton lower bound     		   = 1.0e-6
+  set Newton maximum steps		   = 100
+  set Upper Newton rho			   = 0.99
+  set Line search maximum steps		   = 10
+  set Line search damping 		   = 0.6
+  set Decompose stress in rhs		   = 1.0
+  set Decompose stress in matrix	   = 1.0
+
+end
