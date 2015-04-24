@@ -1,10 +1,10 @@
-# Listing of Example Sneddon 2d constant pressure test
+# Listing of Example Multiple Cracks
 # ----------------------------------------------------
 
 subsection Global parameters
   set Global pre-refinement steps	= 4
   set Local pre-refinement steps  	= 0
-  set Adaptive refinement cycles        = 4
+  set Adaptive refinement cycles        = 3
   set Max No of timesteps  	  	= 1000
   set Timestep size			= 0.01
   set Timestep size to switch to = 1.0
