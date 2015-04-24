@@ -3,7 +3,7 @@
 ##
 
 # Set the name of the project and target:
-SET(TARGET "step-fsi")
+SET(TARGET "cracks")
 
 # Declare all source files the target consists of:
 SET(TARGET_SRC
