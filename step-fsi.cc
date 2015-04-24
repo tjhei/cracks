@@ -1183,9 +1183,9 @@ template <int dim>
     if (test_case == TestCase::sneddon_2d ||
 	test_case == TestCase::multiple_homo ||
 	test_case == TestCase::multiple_het)
-      grid_name = "unit_square_4.inp";
+      grid_name = "meshes/unit_square_4.inp";
     else
-      grid_name  = "unit_slit.inp";
+      grid_name  = "meshes/unit_slit.inp";
 
     GridIn<dim> grid_in;
     grid_in.attach_triangulation(triangulation);
