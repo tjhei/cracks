@@ -21,7 +21,7 @@ subsection Problem dependent parameters
   set K reg				= 1e-8*h
   # 2.0*h
   # 0.25 * pow(h,0.5)
-  set Eps reg 				= 0.125*pow(h,0.25)
+  set Eps reg 				= 0.125*h^0.25
 
   # must be 0.0 in active set:
   set Gamma penalization		= 0.0
@@ -35,7 +35,7 @@ subsection Problem dependent parameters
 end 
 
 subsection Solver parameters
-  set Use Direct Inner Solver              = true
+  set Use Direct Inner Solver              = false
   set Newton lower bound     		   = 1.0e-7
   set Newton maximum steps		   = 50
   set Decompose stress in rhs		   = 0.0
