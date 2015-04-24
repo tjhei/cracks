@@ -172,7 +172,7 @@ BitmapFile::get_value(const double x,
 
         virtual
         double value (const Point<dim> &p,
-                      const unsigned int component = 0) const
+                      const unsigned int /*component*/) const
         {
           Assert(dim==2, ExcNotImplemented());
           double x = (p(0)-x1)/(x2-x1);
@@ -460,7 +460,7 @@ template <int dim>
 
       virtual double
       value (
-          const Point<dim> &p, const unsigned int component = 0) const
+	const Point<dim> &p, const unsigned int component = 0) const
 	{
 	  double dist = 0.0;
 	  Point<dim> left(1.8, 2.0);
@@ -558,8 +558,6 @@ template <int dim>
   {
   double width = _min_cell_diameter;
   double height = _min_cell_diameter;
-    double top = 2.0 + height;
-    double bottom = 2.0 - height;
     // Defining the initial crack(s)
     // 0 = crack
     // 1 = no crack
@@ -643,8 +641,6 @@ template <int dim>
   {
   double width = _min_cell_diameter;
   double height = _min_cell_diameter;
-    double top = 2.0 + height;
-    double bottom = 2.0 - height;
     // Defining the initial crack(s)
     // 0 = crack
     // 1 = no crack
@@ -719,7 +715,7 @@ template <int dim>
 template <int dim>
   double
   InitialValuesMiehe<dim>::value (
-      const Point<dim> &p, const unsigned int component) const
+    const Point<dim> & /*p*/, const unsigned int component) const
   {
     // Defining the initial crack(s)
     // 0 = crack
@@ -1612,7 +1608,7 @@ template <int dim>
     // when working with simple penalization
     if ((outer_solver == OuterSolverType::simple_monolithic) && (timestep_number < 1))
       {
-	gamma_penal == 0.0;
+	gamma_penal = 0.0;
       }
     const double current_pressure = func_pressure.value(Point<1>(time), 0);
 
@@ -1666,9 +1662,6 @@ template <int dim>
     std::vector<Tensor<2, dim> > phi_i_grads_u(dofs_per_cell);
     std::vector<double>          phi_i_pf(dofs_per_cell);
     std::vector<Tensor<1,dim> >  phi_i_grads_pf (dofs_per_cell);
-
-    // This is the identity matrix in two dimensions:
-    const Tensor<2, dim> Identity = Tensors::get_Identity<dim>();
 
     typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
@@ -1753,20 +1746,11 @@ template <int dim>
 		  pf_extra = old_timestep_pf;
 
 
-		const Tensor<1,dim> u = Tensors
-		  ::get_u<dim> (q, old_solution_values);
-
-		const Tensor<1,dim> old_timestep_u = Tensors
-		  ::get_u<dim> (q, old_timestep_solution_values);
-
 	      const Tensor<2,dim> grad_u = Tensors 
 		::get_grad_u<dim> (q, old_solution_grads);
 
               const Tensor<1,dim> grad_pf = Tensors
                 ::get_grad_pf<dim> (q, old_solution_grads);
-
-	      const Tensor<2,dim> old_timestep_grad_u = Tensors 
-		::get_grad_u<dim> (q, old_timestep_solution_grads);
 
 	      const double divergence_u = old_solution_grads[q][0][0] +
 		old_solution_grads[q][1][1];
@@ -1776,9 +1760,6 @@ template <int dim>
 	      
 	      const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
 	      const double tr_E = grad_u[0][0] + grad_u[1][1];
-
-	      const Tensor<2,dim> stress_term = lame_coefficient_lambda * tr_E * Identity
-		+ 2 * lame_coefficient_mu * E;
 
 	      Tensor<2,dim> stress_term_plus;
 	      Tensor<2,dim> stress_term_minus;
@@ -1884,8 +1865,6 @@ template <int dim>
                       const unsigned int comp_i = fe.system_to_component_index(i).first;
                       if (comp_i < dim)
                         {
-                      const Tensor<1, dim> phi_i_u =
-                          fe_values[displacements].value(i, q);
                       const Tensor<2, dim> phi_i_grads_u =
                           fe_values[displacements].gradient(i, q);
 
@@ -2941,7 +2920,6 @@ template <int dim>
         n_face_q_points, std::vector<Tensor<1, dim> >(dim+1));
 
     double cod_value = 0.0;
-    double cod_value_synt_phi = 0.0;
     double eps = 1.0e-6;
 
     typename DoFHandler<dim>::active_cell_iterator cell =
@@ -3017,8 +2995,6 @@ FracturePhaseFieldProblem<dim>::compute_energy()
   LA::MPI::BlockVector rel_solution(partition_relevant);
   rel_solution = solution;
 
-  const unsigned int dofs_per_cell = fe.dofs_per_cell;
-
   std::vector<Vector<double> > solution_values(n_q_points,
       Vector<double>(dim+1));
 
@@ -3046,10 +3022,7 @@ FracturePhaseFieldProblem<dim>::compute_energy()
 
         for (unsigned int q = 0; q < n_q_points; ++q)
           {
-            const Tensor<1, dim> u = Tensors::get_u<dim>(
-                q, solution_values);
-
-            const Tensor<2,dim> grad_u = Tensors
+	    const Tensor<2,dim> grad_u = Tensors
                 ::get_grad_u<dim> (q, solution_grads);
 
             const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
