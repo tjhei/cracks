@@ -259,133 +259,7 @@ namespace Tensors
 
 }
 
-// Class for reading parameters from external input files
-class ParameterReader : public Subscriptor
-{
-  public:
-    ParameterReader (
-        ParameterHandler &);
-    void
-    read_parameters (
-        const std::string);
 
-  private:
-    void
-    declare_parameters ();
-    ParameterHandler &prm;
-};
-
-ParameterReader::ParameterReader (
-    ParameterHandler &paramhandler)
-    :
-        prm(paramhandler)
-{
-}
-
-void
-ParameterReader::read_parameters (
-    const std::string parameter_file)
-{
-  declare_parameters();
-
-  if (!prm.read_input(parameter_file, true))
-    AssertThrow(false, ExcMessage("could not read .prm!"));
-}
-
-void
-ParameterReader::declare_parameters ()
-{
-  prm.enter_subsection("Global parameters");
-    {
-      prm.declare_entry("Global pre-refinement steps", "1",
-          Patterns::Integer(0));
-
-      prm.declare_entry("Local pre-refinement steps", "0",
-          Patterns::Integer(0));
-
-      prm.declare_entry("Adaptive refinement cycles", "0",
-          Patterns::Integer(0));
-
-      prm.declare_entry("Max No of timesteps", "1", Patterns::Integer(0));
-
-      prm.declare_entry("Timestep size", "1.0", Patterns::Double(0));
-
-      prm.declare_entry("Timestep size to switch to", "1.0", Patterns::Double(0));
-
-      prm.declare_entry("Switch timestep after steps", "0", Patterns::Integer(0));
-
-      prm.declare_entry("outer solver", "active set", 
-			Patterns::Selection("active set|simple monolithic"));
-
-      prm.declare_entry("test case", "sneddon 2d", Patterns::Selection("sneddon 2d|miehe tension|miehe shear|multiple homo|multiple het"));
-
-      prm.declare_entry("ref strategy", "phase field", 
-			Patterns::Selection("phase field|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix"));
-
-      prm.declare_entry("value phase field for refinement", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("Output filename", "solution_",
-		       Patterns::Anything());
-    }
-  prm.leave_subsection();
-
-  prm.enter_subsection("Problem dependent parameters");
-    {
-      prm.declare_entry("K reg", "1.0 * h", Patterns::Anything());
-
-      prm.declare_entry("Eps reg", "1.0 * h", Patterns::Anything());
-
-      prm.declare_entry("Gamma penalization", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("alpha time", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("Pressure", "0.0", Patterns::Anything());
-
-      prm.declare_entry("Fracture toughness G_c", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("Density solid", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("Poisson ratio nu", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("E modulus", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("Lame mu", "0.0", Patterns::Double(0));
-
-      prm.declare_entry("Lame lambda", "0.0", Patterns::Double(0));
-
-    }
-  prm.leave_subsection();
-
-  prm.enter_subsection("Solver parameters");
-    {
-      prm.declare_entry("Use Direct Inner Solver", "false",
-			Patterns::Bool());
-      
-      prm.declare_entry("Newton lower bound", "1.0e-10",
-          Patterns::Double(0));
-
-      prm.declare_entry("Newton maximum steps", "10",
-          Patterns::Integer(0));
-
-      prm.declare_entry("Upper Newton rho", "0.999",
-			Patterns::Double(0));
-
-      prm.declare_entry("Line search maximum steps", "5",
-			Patterns::Integer(0));
-      
-      prm.declare_entry("Line search damping", "0.5",
-			Patterns::Double(0));
-
-      prm.declare_entry("Decompose stress in rhs", "0.0",
-			Patterns::Double(0));
-
-      prm.declare_entry("Decompose stress in matrix", "0.0",
-			Patterns::Double(0));
-
-    }
-  prm.leave_subsection();
-
-}
 
 // Several classes for initial (phase-field) values
 // Here, we prescribe initial (multiple) cracks 
@@ -875,6 +749,8 @@ template <int dim>
           const unsigned int degree, ParameterHandler &);
       void
       run ();
+    static void
+    declare_parameters (ParameterHandler & prm);
 
     private:
 
@@ -1051,6 +927,106 @@ template <int dim>
 		TimerOutput::cpu_and_wall_times)
   {
   }
+
+
+
+template <int dim>
+  void
+  FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler & prm)
+{
+  prm.enter_subsection("Global parameters");
+    {
+      prm.declare_entry("Global pre-refinement steps", "1",
+          Patterns::Integer(0));
+
+      prm.declare_entry("Local pre-refinement steps", "0",
+          Patterns::Integer(0));
+
+      prm.declare_entry("Adaptive refinement cycles", "0",
+          Patterns::Integer(0));
+
+      prm.declare_entry("Max No of timesteps", "1", Patterns::Integer(0));
+
+      prm.declare_entry("Timestep size", "1.0", Patterns::Double(0));
+
+      prm.declare_entry("Timestep size to switch to", "1.0", Patterns::Double(0));
+
+      prm.declare_entry("Switch timestep after steps", "0", Patterns::Integer(0));
+
+      prm.declare_entry("outer solver", "active set", 
+			Patterns::Selection("active set|simple monolithic"));
+
+      prm.declare_entry("test case", "sneddon 2d", Patterns::Selection("sneddon 2d|miehe tension|miehe shear|multiple homo|multiple het"));
+
+      prm.declare_entry("ref strategy", "phase field", 
+			Patterns::Selection("phase field|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix"));
+
+      prm.declare_entry("value phase field for refinement", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("Output filename", "solution_",
+		       Patterns::Anything());
+    }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Problem dependent parameters");
+    {
+      prm.declare_entry("K reg", "1.0 * h", Patterns::Anything());
+
+      prm.declare_entry("Eps reg", "1.0 * h", Patterns::Anything());
+
+      prm.declare_entry("Gamma penalization", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("alpha time", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("Pressure", "0.0", Patterns::Anything());
+
+      prm.declare_entry("Fracture toughness G_c", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("Density solid", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("Poisson ratio nu", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("E modulus", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("Lame mu", "0.0", Patterns::Double(0));
+
+      prm.declare_entry("Lame lambda", "0.0", Patterns::Double(0));
+
+    }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Solver parameters");
+    {
+      prm.declare_entry("Use Direct Inner Solver", "false",
+			Patterns::Bool());
+      
+      prm.declare_entry("Newton lower bound", "1.0e-10",
+          Patterns::Double(0));
+
+      prm.declare_entry("Newton maximum steps", "10",
+          Patterns::Integer(0));
+
+      prm.declare_entry("Upper Newton rho", "0.999",
+			Patterns::Double(0));
+
+      prm.declare_entry("Line search maximum steps", "5",
+			Patterns::Integer(0));
+      
+      prm.declare_entry("Line search damping", "0.5",
+			Patterns::Double(0));
+
+      prm.declare_entry("Decompose stress in rhs", "0.0",
+			Patterns::Double(0));
+
+      prm.declare_entry("Decompose stress in matrix", "0.0",
+			Patterns::Double(0));
+
+    }
+  prm.leave_subsection();
+
+}
+
+
 
 // In this method, we set up runtime parameters that
 // could also come from a paramter file.
@@ -3834,12 +3810,23 @@ main (
       deallog.depth_console(0);
 
       ParameterHandler prm;
-      ParameterReader param(prm);
+      FracturePhaseFieldProblem<2>::declare_parameters(prm);
       if (argc>1)
-        param.read_parameters(argv[1]);
+	{
+	  if(!prm.read_input(argv[1], true))
+	    AssertThrow(false, ExcMessage("could not read .prm!"));
+	}
       else
-        param.read_parameters("parameters_miehe_tension.prm");
-
+	{
+	  std::ofstream out("default.prm");
+	  prm.print_parameters (out,
+				ParameterHandler::Text);
+	  std::cout << "usage: ./cracks <parameter_file>" << std::endl
+		    << " (created default.prm)" << std::endl;
+	  return 0;
+	}
+      
+     
       FracturePhaseFieldProblem<2> fracture_problem(1, prm);
       fracture_problem.run();
     }
