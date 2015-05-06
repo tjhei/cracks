@@ -15,7 +15,7 @@ SET(TARGET_SRC
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
-FIND_PACKAGE(deal.II 8.0 QUIET
+FIND_PACKAGE(deal.II 8.2.1 QUIET
   HINTS ${deal.II_DIR} ${DEAL_II_DIR} ../ ../../ $ENV{DEAL_II_DIR}
   )
 IF(NOT ${deal.II_FOUND})
@@ -25,6 +25,19 @@ IF(NOT ${deal.II_FOUND})
     "or set an environment variable \"DEAL_II_DIR\" that contains this path."
     )
 ENDIF()
+
+IF( NOT DEAL_II_WITH_MPI OR
+    NOT DEAL_II_WITH_P4EST OR
+    NOT DEAL_II_WITH_TRILINOS )
+  MESSAGE(FATAL_ERROR "
+Error! The deal.II library found at ${DEAL_II_PATH} was not configured with
+    DEAL_II_WITH_MPI = ON
+    DEAL_II_WITH_P4EST = ON
+    DEAL_II_WITH_TRILINOS = ON
+One or all of these are OFF in your installation but are required for this program."
+    )
+ENDIF()
+
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 PROJECT(${TARGET})
