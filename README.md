@@ -18,6 +18,21 @@ accepted for publication in CMAME, 2015.
 A preprint is available here: 
 http://www.math.clemson.edu/~heister/preprints/HeWheWi15_CMAME_accepted.pdf
 
+# How to run
+
+You need to install deal.II (see http://www.dealii.org) with external dependencies p4est and Trilinos. Then configure with:
+
+  cmake -D DEAL_II_DIR=/your/dealii-installation/ .
+
+Compile with:
+
+  make
+
+and finally run with:
+
+  mpirun -n 2 ./cracks parameters_sneddon_2d.prm
+
+
 # Notes
 
 The code is published under GPL v2 or newer.
