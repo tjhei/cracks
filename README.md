@@ -32,6 +32,8 @@ and finally run with:
 
   mpirun -n 2 ./cracks parameters_sneddon_2d.prm
 
+If the code crashes with an exception "ExcIO", create an empty directory
+called "output".
 
 # Notes
 
