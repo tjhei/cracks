@@ -63,6 +63,9 @@ namespace LA
 #include <fstream>
 #include <sstream>
 
+#define CATCH_CONFIG_RUNNER
+#include "catch.hpp"
+
 using namespace dealii;
 
 
@@ -1367,6 +1370,163 @@ void eigen_vectors_and_values(
       abort();
     }
 }
+
+
+TEST_CASE("eigenvalues for diagonal matrix")
+{
+  Tensor<2,2> evecs;
+  double eval1, eval2;
+  Tensor<1,2> evec1, evec2;
+
+  Tensor<2,2> matrix;
+  matrix[0][0] = 2.0;
+  matrix[1][1] = 3.0;
+
+  eigen_vectors_and_values(eval1, eval2, evecs, matrix);
+  evec1[0]=evecs[0][0];
+  evec1[1]=evecs[1][0];
+  evec2[0]=evecs[0][1];
+  evec2[1]=evecs[1][1];
+
+//  std::cout << " l=" << eval1 << " vec=" << evec1
+//            << " l=" << eval2 << " vec=" << evec2 << std::endl;
+
+  REQUIRE(eval1 == Approx(3.0));
+  REQUIRE(evec1[0] == Approx(0.0));
+  REQUIRE(evec1[1] == Approx(1.0));
+
+  REQUIRE(eval2 == Approx(2.0));
+  REQUIRE(evec2[0] == Approx(1.0));
+  REQUIRE(evec2[1] == Approx(0.0));
+}
+
+TEST_CASE("eigenvalues for matrix with (1,1)=0")
+{
+  Tensor<2,2> evecs;
+  double eval1, eval2;
+  Tensor<1,2> evec1, evec2;
+
+  Tensor<2,2> matrix;
+  matrix[0][0] = -2.0;
+
+  eigen_vectors_and_values(eval1, eval2, evecs, matrix);
+  evec1[0]=evecs[0][0];
+  evec1[1]=evecs[1][0];
+  evec2[0]=evecs[0][1];
+  evec2[1]=evecs[1][1];
+
+//  std::cout << " l=" << eval1 << " vec=" << evec1
+//            << " l=" << eval2 << " vec=" << evec2 << std::endl;
+
+  REQUIRE(eval1 == Approx(0.0));
+  REQUIRE(evec1[0] == Approx(0.0));
+  REQUIRE(evec1[1] == Approx(1.0));
+
+  REQUIRE(eval2 == Approx(-2.0));
+  REQUIRE(evec2[0] == Approx(1.0));
+  REQUIRE(evec2[1] == Approx(0.0));
+}
+
+TEST_CASE("eigenvalues for with only offdiagonal")
+{
+  Tensor<2,2> evecs;
+  double eval1, eval2;
+  Tensor<1,2> evec1, evec2;
+
+  Tensor<2,2> matrix;
+  matrix[0][1] = -2.0;
+  matrix[1][0] = -2.0;
+
+  eigen_vectors_and_values(eval1, eval2, evecs, matrix);
+  evec1[0]=evecs[0][0];
+  evec1[1]=evecs[1][0];
+  evec2[0]=evecs[0][1];
+  evec2[1]=evecs[1][1];
+
+//  std::cout << " l=" << eval1 << " vec=" << evec1
+//            << " l=" << eval2 << " vec=" << evec2 << std::endl;
+
+  double sq = std::sqrt(2.0);
+  REQUIRE(eval1 == Approx(2.0));
+  REQUIRE(evec1[0] == Approx(1.0/sq));
+  REQUIRE(evec1[1] == Approx(-1.0/sq));
+
+  REQUIRE(eval2 == Approx(-2.0));
+  REQUIRE(evec2[0] == Approx(1.0/sq));
+  REQUIRE(evec2[1] == Approx(1.0/sq));
+}
+
+TEST_CASE("eigenvalues for full matrix")
+{
+  Tensor<2,2> evecs;
+  double eval1, eval2;
+  Tensor<1,2> evec1, evec2;
+
+  Tensor<2,2> matrix;
+  matrix[0][0] = 3.0;
+  matrix[0][1] = 2.0;
+  matrix[1][0] = 2.0;
+  matrix[1][1] = 4.0;
+
+  eigen_vectors_and_values(eval1, eval2, evecs, matrix);
+  evec1[0]=evecs[0][0];
+  evec1[1]=evecs[1][0];
+  evec2[0]=evecs[0][1];
+  evec2[1]=evecs[1][1];
+
+//  std::cout << " l=" << eval1 << " vec=" << evec1
+//            << " l=" << eval2 << " vec=" << evec2 << std::endl;
+
+  double a = 7.0/2.0, b = std::sqrt(17)/2.0;
+
+  REQUIRE(eval1 == Approx(a+b));
+  double v1 = (-0.5+b)/2.0;
+  double len1 = std::sqrt(v1*v1+1.0);
+  REQUIRE(evec1[0] == Approx(v1/len1));
+  REQUIRE(evec1[1] == Approx(1.0/len1));
+
+  REQUIRE(eval2 == Approx(a-b));
+  double v2 = (-0.5-b)/2.0;
+  double len2 = std::sqrt(v2*v2+1.0);
+  REQUIRE(evec2[0] == Approx(-v2/len2));
+  REQUIRE(evec2[1] == Approx(-1.0/len2));
+}
+
+TEST_CASE("eigenvalues for matrix with (0,0)=0")
+{
+  Tensor<2,2> evecs;
+  double eval1, eval2;
+  Tensor<1,2> evec1, evec2;
+
+  Tensor<2,2> matrix;
+  matrix[0][0] = 0.0;
+  matrix[0][1] = -2.0;
+  matrix[1][0] = -2.0;
+  matrix[1][1] = 4.0;
+
+  eigen_vectors_and_values(eval1, eval2, evecs, matrix);
+  evec1[0]=evecs[0][0];
+  evec1[1]=evecs[1][0];
+  evec2[0]=evecs[0][1];
+  evec2[1]=evecs[1][1];
+
+//  std::cout << " l=" << eval1 << " vec=" << evec1
+//            << " l=" << eval2 << " vec=" << evec2 << std::endl;
+
+  REQUIRE(eval1 == Approx(2.0+2.0*std::sqrt(2.0)));
+  double v1 = 1.0-std::sqrt(2.0);
+  double len1 = std::sqrt(v1*v1+1.0);
+  REQUIRE(evec1[0] == Approx(-v1/len1));
+  REQUIRE(evec1[1] == Approx(-1.0/len1));
+
+  REQUIRE(eval2 == Approx(2.0-2.0*std::sqrt(2.0)));
+  double v2 = 1.0+std::sqrt(2.0);
+  double len2 = std::sqrt(v2*v2+1.0);
+  REQUIRE(evec2[0] == Approx(v2/len2));
+  REQUIRE(evec2[1] == Approx(1.0/len2));
+}
+
+
 
 template <int dim>
 void decompose_stress(
@@ -3825,6 +3985,15 @@ main (
   int argc, char *argv[])
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+
+
+  if (argc==1) // run unit tests
+    {
+      int ret = Catch::Session().run(argc, argv);
+      if (ret != 0)
+        return ret;
+    }
+
   try
     {
       deallog.depth_console(0);
