@@ -3170,7 +3170,15 @@ FracturePhaseFieldProblem<dim>::determine_mesh_dependent_parameters()
       || test_case == TestCase::multiple_homo
       || test_case == TestCase::multiple_het)
     {
-      min_cell_diameter = dof_handler.begin(0)->diameter();
+      min_cell_diameter = 0.0;
+
+      typename DoFHandler<dim>::cell_iterator cell =
+        dof_handler.begin(0), endc = dof_handler.end(0);
+
+      for (; cell != endc; ++cell)
+        {
+          min_cell_diameter = std::max(cell->diameter(), min_cell_diameter);
+        }
       min_cell_diameter *= std::pow(2.0,-1.0*(n_global_pre_refine+n_refinement_cycles+n_local_pre_refine));
     }
 
