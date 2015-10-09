@@ -1335,7 +1335,8 @@ void eigen_vectors_and_values(
   // Compute eigenvectors
   Tensor<1,dim> E_eigenvector_1;
   Tensor<1,dim> E_eigenvector_2;
-  if (std::abs(matrix[0][1]) < 1e-10*std::abs(matrix[0][0]))
+  if (std::abs(matrix[0][1]) < 1e-10*std::abs(matrix[0][0]) 
+          || std::abs(matrix[0][1]) < 1e-10*std::abs(matrix[1][1]))
     {
       // E is close to diagonal
       E_eigenvector_1[0]=0;
