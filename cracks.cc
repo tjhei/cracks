@@ -1620,7 +1620,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
   std::vector<unsigned int> local_dof_indices(dofs_per_cell);
 
   const FEValuesExtractors::Vector displacements(0);
-  const FEValuesExtractors::Scalar phase_field (dim); // 2
+  const FEValuesExtractors::Scalar phase_field (dim);
 
   std::vector<Vector<double> > old_solution_values(n_q_points,
                                                    Vector<double>(dim+1));
@@ -1739,7 +1739,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                              ::get_Identity<dim> ();
 
               const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
-              const double tr_E = grad_u[0][0] + grad_u[1][1];
+              const double tr_E = trace(E);
 
               Tensor<2,dim> stress_term_plus;
               Tensor<2,dim> stress_term_minus;
@@ -3008,7 +3008,7 @@ FracturePhaseFieldProblem<dim>::compute_energy()
                                          ::get_grad_u<dim> (q, solution_grads);
 
             const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
-            const double tr_E = grad_u[0][0] + grad_u[1][1];
+            const double tr_E = trace(E);
 
             const double pf = solution_values[q](dim);
 
@@ -3116,7 +3116,7 @@ FracturePhaseFieldProblem<dim>::compute_load ()
                     = Tensors::get_grad_u<dim>(q_point, face_solution_grads);
 
                   const Tensor<2, dim> E = 0.5 * (grad_u + transpose(grad_u));
-                  const double tr_E = grad_u[0][0] + grad_u[1][1];
+                  const double tr_E = trace(E);
 
                   Tensor<2, dim> stress_term;
                   stress_term = lame_coefficient_lambda * tr_E * Identity
