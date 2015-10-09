@@ -1331,10 +1331,6 @@ void eigen_vectors_and_values(
   Tensor<2,dim> &ev_matrix,
   const Tensor<2,dim> &matrix)
 {
-  double sq = std::sqrt((matrix[0][0] - matrix[1][1]) * (matrix[0][0] - matrix[1][1]) + 4.0*matrix[0][1]*matrix[1][0]);
-  E_eigenvalue_1 = 0.5 * ((matrix[0][0] + matrix[1][1]) + sq);
-  E_eigenvalue_2 = 0.5 * ((matrix[0][0] + matrix[1][1]) - sq);
-
   // Compute eigenvectors
   Tensor<1,dim> E_eigenvector_1;
   Tensor<1,dim> E_eigenvector_2;
@@ -1342,13 +1338,19 @@ void eigen_vectors_and_values(
       || std::abs(matrix[0][1]) < 1e-10*std::abs(matrix[1][1]))
     {
       // E is close to diagonal
-      E_eigenvector_1[0]=0;
-      E_eigenvector_1[1]=1;
-      E_eigenvector_2[0]=1;
-      E_eigenvector_2[1]=0;
+      E_eigenvalue_1 = matrix[0][0];
+      E_eigenvector_1[0]=1;
+      E_eigenvector_1[1]=0;
+      E_eigenvalue_2 = matrix[1][1];
+      E_eigenvector_2[0]=0;
+      E_eigenvector_2[1]=1;
     }
   else
     {
+      double sq = std::sqrt((matrix[0][0] - matrix[1][1]) * (matrix[0][0] - matrix[1][1]) + 4.0*matrix[0][1]*matrix[1][0]);
+      E_eigenvalue_1 = 0.5 * ((matrix[0][0] + matrix[1][1]) + sq);
+      E_eigenvalue_2 = 0.5 * ((matrix[0][0] + matrix[1][1]) - sq);
+
       E_eigenvector_1[0] = 1.0/(std::sqrt(1 + (E_eigenvalue_1 - matrix[0][0])/matrix[0][1] * (E_eigenvalue_1 - matrix[0][0])/matrix[0][1]));
       E_eigenvector_1[1] = (E_eigenvalue_1 - matrix[0][0])/(matrix[0][1] * (std::sqrt(1 + (E_eigenvalue_1 - matrix[0][0])/matrix[0][1] * (E_eigenvalue_1 - matrix[0][0])/matrix[0][1])));
       E_eigenvector_2[0] = 1.0/(std::sqrt(1 + (E_eigenvalue_2 - matrix[0][0])/matrix[0][1] * (E_eigenvalue_2 - matrix[0][0])/matrix[0][1]));
@@ -1391,13 +1393,13 @@ TEST_CASE("eigenvalues for diagonal matrix")
 //  std::cout << " l=" << eval1 << " vec=" << evec1
 //            << " l=" << eval2 << " vec=" << evec2 << std::endl;
 
-  REQUIRE(eval1 == Approx(3.0));
-  REQUIRE(evec1[0] == Approx(0.0));
-  REQUIRE(evec1[1] == Approx(1.0));
+  REQUIRE(eval1 == Approx(2.0));
+  REQUIRE(evec1[0] == Approx(1.0));
+  REQUIRE(evec1[1] == Approx(0.0));
 
-  REQUIRE(eval2 == Approx(2.0));
-  REQUIRE(evec2[0] == Approx(1.0));
-  REQUIRE(evec2[1] == Approx(0.0));
+  REQUIRE(eval2 == Approx(3.0));
+  REQUIRE(evec2[0] == Approx(0.0));
+  REQUIRE(evec2[1] == Approx(1.0));
 }
 
 TEST_CASE("eigenvalues for matrix with (1,1)=0")
@@ -1418,13 +1420,40 @@ TEST_CASE("eigenvalues for matrix with (1,1)=0")
 //  std::cout << " l=" << eval1 << " vec=" << evec1
 //            << " l=" << eval2 << " vec=" << evec2 << std::endl;
 
-  REQUIRE(eval1 == Approx(0.0));
-  REQUIRE(evec1[0] == Approx(0.0));
-  REQUIRE(evec1[1] == Approx(1.0));
+  REQUIRE(eval1 == Approx(-2.0));
+  REQUIRE(evec1[0] == Approx(1.0));
+  REQUIRE(evec1[1] == Approx(0.0));
 
-  REQUIRE(eval2 == Approx(-2.0));
-  REQUIRE(evec2[0] == Approx(1.0));
-  REQUIRE(evec2[1] == Approx(0.0));
+  REQUIRE(eval2 == Approx(0.0));
+  REQUIRE(evec2[0] == Approx(0.0));
+  REQUIRE(evec2[1] == Approx(1.0));
+}
+
+TEST_CASE("eigenvalues for matrix with (1,1)=0 test2")
+{
+  Tensor<2,2> evecs;
+  double eval1, eval2;
+  Tensor<1,2> evec1, evec2;
+
+  Tensor<2,2> matrix;
+  matrix[0][0] = 5.0;
+
+  eigen_vectors_and_values(eval1, eval2, evecs, matrix);
+  evec1[0]=evecs[0][0];
+  evec1[1]=evecs[1][0];
+  evec2[0]=evecs[0][1];
+  evec2[1]=evecs[1][1];
+
+//  std::cout << " l=" << eval1 << " vec=" << evec1
+//            << " l=" << eval2 << " vec=" << evec2 << std::endl;
+
+  REQUIRE(eval1 == Approx(5.0));
+  REQUIRE(evec1[0] == Approx(1.0));
+  REQUIRE(evec1[1] == Approx(0.0));
+
+  REQUIRE(eval2 == Approx(0.0));
+  REQUIRE(evec2[0] == Approx(0.0));
+  REQUIRE(evec2[1] == Approx(1.0));
 }
 
 TEST_CASE("eigenvalues for with only offdiagonal")
