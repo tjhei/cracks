@@ -1236,6 +1236,35 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   Assert(dim==2, ExcInternalError());
   grid_in.read(input_file, format);
 
+
+  if (test_case == TestCase::three_point_bending)
+    {
+      double eps_machine = 1.0e-10;
+
+      typename Triangulation<dim>::active_cell_iterator
+      cell = triangulation.begin_active(),
+      endc = triangulation.end();
+      for (; cell!=endc; ++cell)
+        for (unsigned int f=0;
+             f < GeometryInfo<dim>::faces_per_cell;
+             ++f)
+          {
+            const Point<dim> face_center = cell->face(f)->center();
+            if (cell->face(f)->at_boundary())
+              {
+                if ((face_center[1] < 2.0+eps_machine) && (face_center[1] > 2.0-eps_machine)
+                   )
+                  cell->face(f)->set_boundary_id(3);
+                else if ((face_center[0] < -4.0+eps_machine) && (face_center[0] > -4.0-eps_machine)
+                        )
+                  cell->face(f)->set_boundary_id(0);
+                else if ((face_center[0] < 4.0+eps_machine) && (face_center[0] > 4.0-eps_machine)
+                        )
+                  cell->face(f)->set_boundary_id(1);
+              }
+          }
+    }
+
   triangulation.refine_global(n_global_pre_refine);
 
   pcout << "Cells:\t" << triangulation.n_active_cells() << std::endl;
