@@ -3155,7 +3155,7 @@ FracturePhaseFieldProblem<dim>::compute_point_stress ()
 
       std::vector<std::vector<Tensor<1,dim> > > old_solution_grads (1,std::vector<Tensor<1,dim> > (dim+1));
 
-      fe_values.get_function_gradients(solution, old_solution_grads);
+      fe_values.get_function_gradients(rel_solution, old_solution_grads);
 
       // Compute stress of y-comp into y-direction
       value = -1.0 * old_solution_grads[0][1][1];
