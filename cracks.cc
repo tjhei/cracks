@@ -2356,25 +2356,6 @@ FracturePhaseFieldProblem<dim>::set_initial_bc (
     }
   else if (test_case == TestCase::three_point_bending)
     {
-      // For Miehe 2010 shear test
-      component_mask[0] = false;
-      component_mask[1] = false;
-      component_mask[2] = false;
-      //VectorTools::interpolate_boundary_values(dof_handler, 3,
-      //                                        ConstantFunction<dim>(1.0,dim+1), boundary_values, component_mask);
-
-      //VectorTools::interpolate_boundary_values(dof_handler, 0,
-      //                                         ConstantFunction<dim>(1.0,dim+1), boundary_values, component_mask);
-      //
-      //VectorTools::interpolate_boundary_values(dof_handler, 1,
-      //                                         ConstantFunction<dim>(1.0, dim+1), boundary_values, component_mask);
-
-      //component_mask[1] = true;
-      //VectorTools::interpolate_boundary_values(dof_handler, 3,
-      //                                         BoundaryParabelTension<dim>(-time), boundary_values, component_mask);
-
-
-
       // fix y component of left and right bottom corners
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
@@ -2383,7 +2364,6 @@ FracturePhaseFieldProblem<dim>::set_initial_bc (
         {
           if (cell->is_artificial())
             continue;
-
 
           for (unsigned int v = 0;
                v < GeometryInfo<dim>::vertices_per_cell; ++v)
@@ -2398,11 +2378,10 @@ FracturePhaseFieldProblem<dim>::set_initial_bc (
                 {
                   types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
                   boundary_values[idx] = 0.0;
-                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  //idx = cell->vertex_dof_index(v, 0);// 0=x displacement
                   //boundary_values[idx] = 0.0;
                   idx = cell->vertex_dof_index(v, 2);// 2= phase-field
                   boundary_values[idx] = 1.0;
-
                 }
               else if (
                 std::abs(cell->vertex(v)[0]) < 1e-10
@@ -2410,9 +2389,7 @@ FracturePhaseFieldProblem<dim>::set_initial_bc (
                 std::abs(cell->vertex(v)[1]-2.0) < 1e-10
               )
                 {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  //boundary_values[idx] = 0.0;
-                  idx = cell->vertex_dof_index(v, 1);// 1=y displacement
+                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
                   boundary_values[idx] = -1.0*time;
                 }
 
@@ -2538,18 +2515,6 @@ FracturePhaseFieldProblem<dim>::set_newton_bc ()
     }
   else if (test_case == TestCase::three_point_bending)
     {
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      //VectorTools::interpolate_boundary_values(dof_handler, 3,
-      //                                         ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      //VectorTools::interpolate_boundary_values(dof_handler, 0,
-      //                                         ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-      //
-      //VectorTools::interpolate_boundary_values(dof_handler, 1,
-      //                                         ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
       // fix y component of left and right bottom corners
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
@@ -2574,8 +2539,6 @@ FracturePhaseFieldProblem<dim>::set_newton_bc ()
 
                   types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
                   constraints_update.add_line(idx);
-                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  //constraints_update.add_line(idx);
                   idx = cell->vertex_dof_index(v, 2);// 2=phase-field
                   constraints_update.add_line(idx);
 
@@ -2586,9 +2549,7 @@ FracturePhaseFieldProblem<dim>::set_newton_bc ()
                 std::abs(cell->vertex(v)[1]-2.0) < 1e-10
               )
                 {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  //constraints_update.add_line(idx);
-                  idx = cell->vertex_dof_index(v, 1);// 1=y displacement
+                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
                   constraints_update.add_line(idx);
                 }
             }
@@ -3523,7 +3484,7 @@ FracturePhaseFieldProblem<dim>::compute_load ()
       {
         for (unsigned int face=0; face<GeometryInfo<dim>::faces_per_cell; ++face)
           if (cell->face(face)->at_boundary() &&
-              cell->face(face)->boundary_indicator()==3)
+              cell->face(face)->boundary_id()==3)
             {
               fe_face_values.reinit (cell, face);
               fe_face_values.get_function_gradients (rel_solution, face_solution_grads);
