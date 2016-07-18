@@ -740,6 +740,59 @@ BoundaryParabelShear<dim>::vector_value (const Point<dim> &p,
 }
 
 
+template <int dim>
+class BoundaryThreePoint : public Function<dim>
+{
+public:
+  BoundaryThreePoint (const double time)
+    : Function<dim>(dim+1)
+  {
+    _time = time;
+  }
+
+  virtual double value (const Point<dim>   &p,
+                        const unsigned int  component = 0) const;
+
+  virtual void vector_value (const Point<dim> &p,
+                             Vector<double>   &value) const;
+
+private:
+  double _time;
+
+};
+
+// The boundary values are given to component
+// with number 0.
+template <int dim>
+double
+BoundaryThreePoint<dim>::value (const Point<dim>  &p,
+                                const unsigned int component) const
+{
+  Assert (component < this->n_components,
+          ExcIndexRange (component, 0, this->n_components));
+
+
+  double dis_step_per_timestep = -1.0;
+
+  if (component == 1)
+    {
+      return 1.0 * _time *dis_step_per_timestep;
+    }
+
+
+  return 0;
+}
+
+
+
+template <int dim>
+void
+BoundaryThreePoint<dim>::vector_value (const Point<dim> &p,
+                                       Vector<double>   &values) const
+{
+  for (unsigned int c=0; c<this->n_components; ++c)
+    values (c) = BoundaryThreePoint<dim>::value (p, c);
+}
 
 
 // Main program
@@ -789,6 +842,9 @@ private:
   compute_point_value (
     const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
     const Point<dim> &p, const unsigned int component) const;
+
+  void
+  compute_point_stress ();
 
   void
   output_results () const;
@@ -859,7 +915,7 @@ private:
 
   struct TestCase
   {
-    enum Enum {sneddon_2d, miehe_tension, miehe_shear, multiple_homo, multiple_het};
+    enum Enum {sneddon_2d, miehe_tension, miehe_shear, multiple_homo, multiple_het, three_point_bending};
   };
   typename TestCase::Enum test_case;
 
@@ -867,7 +923,7 @@ private:
   {
     enum Enum {phase_field_ref, fixed_preref_sneddon, fixed_preref_miehe_tension,
                fixed_preref_miehe_shear, fixed_preref_multiple_homo, fixed_preref_multiple_het,
-               global, mix
+               global, mix, phase_field_ref_three_point_top
               };
   };
   typename RefinementStrategy::Enum refinement_strategy;
@@ -960,10 +1016,10 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("outer solver", "active set",
                       Patterns::Selection("active set|simple monolithic"));
 
-    prm.declare_entry("test case", "sneddon 2d", Patterns::Selection("sneddon 2d|miehe tension|miehe shear|multiple homo|multiple het"));
+    prm.declare_entry("test case", "sneddon 2d", Patterns::Selection("sneddon 2d|miehe tension|miehe shear|multiple homo|multiple het|three point bending"));
 
     prm.declare_entry("ref strategy", "phase field",
-                      Patterns::Selection("phase field|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix"));
+                      Patterns::Selection("phase field|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix|phase field three point top"));
 
     prm.declare_entry("value phase field for refinement", "0.0", Patterns::Double(0));
 
@@ -1063,6 +1119,8 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
     test_case = TestCase::multiple_homo; // multiple fractures homogeneous material
   else if (prm.get("test case")=="multiple het")
     test_case = TestCase::multiple_het; // multiple fractures heterogeneous material
+  else if (prm.get("test case")=="three point bending")
+    test_case = TestCase::three_point_bending;
   else
     AssertThrow(false, ExcNotImplemented());
 
@@ -1082,6 +1140,8 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
     refinement_strategy = RefinementStrategy::global;
   else if (prm.get("ref strategy")=="mix")
     refinement_strategy = RefinementStrategy::mix;
+  else if (prm.get("ref strategy")=="phase field three point top")
+    refinement_strategy = RefinementStrategy::phase_field_ref_three_point_top;
   else
     AssertThrow(false, ExcNotImplemented());
 
@@ -1155,11 +1215,18 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   // In the following, we read a *.inp grid from a file.
   // The configuration is based on Sneddon's benchmark (1969)
   // and Miehe 2010 (tension and shear)
+  typename GridIn<dim>::Format format = GridIn<dim>::ucd;
+
   std::string grid_name;
   if (test_case == TestCase::sneddon_2d ||
       test_case == TestCase::multiple_homo ||
       test_case == TestCase::multiple_het)
     grid_name = "meshes/unit_square_4.inp";
+  else if (test_case == TestCase::three_point_bending)
+    {
+      grid_name = "meshes/threepoint.msh";
+      format = GridIn<dim>::msh;
+    }
   else
     grid_name  = "meshes/unit_slit.inp";
 
@@ -1167,7 +1234,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   grid_in.attach_triangulation(triangulation);
   std::ifstream input_file(grid_name.c_str());
   Assert(dim==2, ExcInternalError());
-  grid_in.read_ucd(input_file);
+  grid_in.read(input_file, format);
 
   triangulation.refine_global(n_global_pre_refine);
 
@@ -2287,6 +2354,72 @@ FracturePhaseFieldProblem<dim>::set_initial_bc (
                                                ZeroFunction<dim>(dim+1), boundary_values, component_mask);
 
     }
+  else if (test_case == TestCase::three_point_bending)
+    {
+      // For Miehe 2010 shear test
+      component_mask[0] = false;
+      component_mask[1] = false;
+      component_mask[2] = false;
+      //VectorTools::interpolate_boundary_values(dof_handler, 3,
+      //                                        ConstantFunction<dim>(1.0,dim+1), boundary_values, component_mask);
+
+      //VectorTools::interpolate_boundary_values(dof_handler, 0,
+      //                                         ConstantFunction<dim>(1.0,dim+1), boundary_values, component_mask);
+      //
+      //VectorTools::interpolate_boundary_values(dof_handler, 1,
+      //                                         ConstantFunction<dim>(1.0, dim+1), boundary_values, component_mask);
+
+      //component_mask[1] = true;
+      //VectorTools::interpolate_boundary_values(dof_handler, 3,
+      //                                         BoundaryParabelTension<dim>(-time), boundary_values, component_mask);
+
+
+
+      // fix y component of left and right bottom corners
+      typename DoFHandler<dim>::active_cell_iterator cell =
+        dof_handler.begin_active(), endc = dof_handler.end();
+
+      for (; cell != endc; ++cell)
+        {
+          if (cell->is_artificial())
+            continue;
+
+
+          for (unsigned int v = 0;
+               v < GeometryInfo<dim>::vertices_per_cell; ++v)
+            {
+              if (
+                std::abs(cell->vertex(v)[1]) < 1e-10
+                &&
+                (
+                  std::abs(cell->vertex(v)[0]+4.0) < 1e-10
+                  || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
+                ))
+                {
+                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
+                  boundary_values[idx] = 0.0;
+                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  //boundary_values[idx] = 0.0;
+                  idx = cell->vertex_dof_index(v, 2);// 2= phase-field
+                  boundary_values[idx] = 1.0;
+
+                }
+              else if (
+                std::abs(cell->vertex(v)[0]) < 1e-10
+                &&
+                std::abs(cell->vertex(v)[1]-2.0) < 1e-10
+              )
+                {
+                  types::global_dof_index idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  //boundary_values[idx] = 0.0;
+                  idx = cell->vertex_dof_index(v, 1);// 1=y displacement
+                  boundary_values[idx] = -1.0*time;
+                }
+
+            }
+        }
+
+    }
 
 
   std::pair<unsigned int, unsigned int> range;
@@ -2401,6 +2534,65 @@ FracturePhaseFieldProblem<dim>::set_newton_bc ()
       VectorTools::interpolate_boundary_values(dof_handler, 4,
                                                ZeroFunction<dim>(dim+1), constraints_update, component_mask);
 
+
+    }
+  else if (test_case == TestCase::three_point_bending)
+    {
+      component_mask[0] = false;
+      component_mask[1] = true;
+      component_mask[2] = false;
+      //VectorTools::interpolate_boundary_values(dof_handler, 3,
+      //                                         ZeroFunction<dim>(dim+1), constraints_update, component_mask);
+
+      //VectorTools::interpolate_boundary_values(dof_handler, 0,
+      //                                         ZeroFunction<dim>(dim+1), constraints_update, component_mask);
+      //
+      //VectorTools::interpolate_boundary_values(dof_handler, 1,
+      //                                         ZeroFunction<dim>(dim+1), constraints_update, component_mask);
+
+      // fix y component of left and right bottom corners
+      typename DoFHandler<dim>::active_cell_iterator cell =
+        dof_handler.begin_active(), endc = dof_handler.end();
+
+      for (; cell != endc; ++cell)
+        {
+          if (cell->is_artificial())
+            continue;
+
+
+          for (unsigned int v = 0;
+               v < GeometryInfo<dim>::vertices_per_cell; ++v)
+            {
+              if (
+                std::abs(cell->vertex(v)[1]) < 1e-10
+                &&
+                (
+                  std::abs(cell->vertex(v)[0]+4.0) < 1e-10
+                  || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
+                ))
+                {
+
+                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
+                  constraints_update.add_line(idx);
+                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  //constraints_update.add_line(idx);
+                  idx = cell->vertex_dof_index(v, 2);// 2=phase-field
+                  constraints_update.add_line(idx);
+
+                }
+              else if (
+                std::abs(cell->vertex(v)[0]) < 1e-10
+                &&
+                std::abs(cell->vertex(v)[1]-2.0) < 1e-10
+              )
+                {
+                  types::global_dof_index idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  //constraints_update.add_line(idx);
+                  idx = cell->vertex_dof_index(v, 1);// 1=y displacement
+                  constraints_update.add_line(idx);
+                }
+            }
+        }
 
     }
 
@@ -2935,6 +3127,43 @@ FracturePhaseFieldProblem<dim>::compute_point_value (
   return Utilities::MPI::sum(value, mpi_com);
 }
 
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::compute_point_stress ()
+{
+  // Evaluation point
+  Point<dim> p1(0.0,2.0);
+
+  LA::MPI::BlockVector rel_solution(partition_relevant);
+  rel_solution = solution;
+
+  // first find the cell in which this point
+  // is, initialize a quadrature rule with
+  // it, and then a FEValues object
+  const std::pair<typename DoFHandler<dim>::active_cell_iterator, Point<dim> >
+  cell_point
+    = GridTools::find_active_cell_around_point (StaticMappingQ1<dim>::mapping, dof_handler, p1);
+
+  double value = 0.0;
+  if (!cell_point.first->is_artificial())
+    {
+      const Quadrature<dim>
+      quadrature (GeometryInfo<dim>::project_to_unit_cell(cell_point.second));
+
+      FEValues<dim> fe_values(fe, quadrature, update_values | update_gradients);
+      fe_values.reinit(cell_point.first);
+
+      std::vector<std::vector<Tensor<1,dim> > > old_solution_grads (1,std::vector<Tensor<1,dim> > (dim+1));
+
+      fe_values.get_function_gradients(solution, old_solution_grads);
+
+      // Compute stress of y-comp into y-direction
+      value = -1.0 * old_solution_grads[0][1][1];
+    }
+
+  pcout << " PStress: " << Utilities::MPI::max(value, mpi_com) << std::endl;
+}
+
 
 int value_to_bucket(double x, unsigned int n_buckets)
 {
@@ -3331,6 +3560,11 @@ FracturePhaseFieldProblem<dim>::compute_load ()
     {
       pcout << "  Load x: " << Utilities::MPI::sum(load_value[0], mpi_com) << std::endl;
     }
+  else if (test_case == TestCase::three_point_bending)
+    {
+      load_value[1] *= -1.0;
+      pcout << "  P11: " << Utilities::MPI::sum(load_value[1], mpi_com) << std::endl;
+    }
 }
 
 // Determine the phase-field regularization parameters
@@ -3357,7 +3591,8 @@ FracturePhaseFieldProblem<dim>::determine_mesh_dependent_parameters()
   if (test_case == TestCase::miehe_tension
       || test_case == TestCase::miehe_shear
       || test_case == TestCase::multiple_homo
-      || test_case == TestCase::multiple_het)
+      || test_case == TestCase::multiple_het
+      || test_case == TestCase::three_point_bending)
     {
       min_cell_diameter = 0.0;
 
@@ -3496,6 +3731,45 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       for (; cell != endc; ++cell)
         if (cell->is_locally_owned())
           {
+            cell->get_dof_indices(local_dof_indices);
+            for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+              {
+                const unsigned int comp_i = fe.system_to_component_index(i).first;
+                if (comp_i != dim)
+                  continue; // only look at phase field
+                if (relevant_solution(local_dof_indices[i])
+                    < value_phase_field_for_refinement )
+                  {
+                    cell->set_refine_flag();
+                    break;
+                  }
+              }
+          }
+    }
+  else if (refinement_strategy == RefinementStrategy::phase_field_ref_three_point_top)
+    {
+      // refine if phase field < constant
+      typename DoFHandler<dim>::active_cell_iterator cell =
+        dof_handler.begin_active(), endc = dof_handler.end();
+      std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+
+      for (; cell != endc; ++cell)
+        if (cell->is_locally_owned())
+          {
+            // Miehe three point top boundary refinement
+            for (unsigned int vertex = 0;
+                 vertex < GeometryInfo<dim>::vertices_per_cell; ++vertex)
+              {
+                Assert(dim==2, ExcNotImplemented());
+                Tensor<1, dim> cell_vertex = (cell->vertex(vertex));
+                if (cell_vertex[1] >= 1.75)
+                  {
+                    cell->set_refine_flag();
+                    break;
+                  }
+              }
+
+            // Phase-field
             cell->get_dof_indices(local_dof_indices);
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
@@ -3805,7 +4079,7 @@ redo_step:
                     pcout << "Solver did not converge! Adjusting time step to " << timestep/10 << std::endl;
                   }
 
-                pcout << "Nehme nun old_timestep_pf" << std::endl;
+                pcout << "Taking old_timestep_pf" << std::endl;
                 use_old_timestep_pf = true;
                 solution = old_solution;
 
@@ -3905,7 +4179,11 @@ redo_step:
             //compute_cod_array();
           }
         else
-          compute_load();
+          {
+            compute_load();
+            if (test_case == TestCase::three_point_bending)
+              compute_point_stress ();
+          }
 
 
 
