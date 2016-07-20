@@ -5,12 +5,12 @@
 subsection Global parameters
   set Global pre-refinement steps	= 1
   set Local pre-refinement steps  	= 0
-  set Adaptive refinement cycles        = 1
+  set Adaptive refinement cycles        = 2
 
-  set Max No of timesteps  	  	= 50
+  set Max No of timesteps  	  	= 1000
   set Timestep size			= 1.0e-3
   set Timestep size to switch to	= 1.0e-5 
-  set Switch timestep after steps	= 10000
+  set Switch timestep after steps	= 35
 
 
   set outer solver                      = active set 
@@ -27,8 +27,8 @@ subsection Global parameters
 end
 
 subsection Problem dependent parameters
-  set K reg				= 1.0e-12
-  set Eps reg				= 4.0*h
+  set K reg				= 1.0e-10
+  set Eps reg				= 2.0*h
   set Gamma penalization		= 0.0
 
   # Material and problem-rhs parameters

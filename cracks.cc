@@ -2407,8 +2407,9 @@ FracturePhaseFieldProblem<dim>::set_initial_bc (
                 {
                   types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
                   boundary_values[idx] = 0.0;
-                  //idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  //boundary_values[idx] = 0.0;
+                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
+                    boundary_values[idx] = 0.0;
                   idx = cell->vertex_dof_index(v, 2);// 2= phase-field
                   boundary_values[idx] = 1.0;
                 }
@@ -2568,9 +2569,11 @@ FracturePhaseFieldProblem<dim>::set_newton_bc ()
 
                   types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
                   constraints_update.add_line(idx);
+                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
+                  if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
+                    constraints_update.add_line(idx);
                   idx = cell->vertex_dof_index(v, 2);// 2=phase-field
                   constraints_update.add_line(idx);
-
                 }
               else if (
                 std::abs(cell->vertex(v)[0]) < 1e-10
@@ -4072,6 +4075,16 @@ redo_step:
                 pcout << "Taking old_timestep_pf" << std::endl;
                 use_old_timestep_pf = true;
                 solution = old_solution;
+
+                if (test_case == TestCase::three_point_bending)
+                  {
+                    // three-point bending tests needs old_timestep_pf, but
+                    // doesn't converge if we cut the timestep, so just run
+                    // the nonlinear solver here (and crash if this again
+                    // fails)
+                    newton_reduction = newton_active_set();
+                    break;
+                  }
 
                 // Time step cut
                 time -= timestep;
