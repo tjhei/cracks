@@ -10,10 +10,10 @@ Features:
 
 This is the example program to accompany the paper
 
-T. Heister, M. Wheeler, T. Wick:
-  A primal-dual active set method and predictor-corrector mesh adaptivity
-  for computing fracture propagation using a phase-field approach
-accepted for publication in CMAME, 2015.
+T. Heister, M. F. Wheeler, T. Wick:
+A primal-dual active set method and predictor-corrector mesh adaptivity for computing fracture propagation using a phase-field approach.
+Comp. Meth. Appl. Mech. Engrg., Vol. 290 (2015), pp. 466-495
+http://dx.doi.org/10.1016/j.cma.2015.03.009
 
 A preprint is available here: 
 http://www.math.clemson.edu/~heister/preprints/HeWheWi15_CMAME_accepted.pdf
