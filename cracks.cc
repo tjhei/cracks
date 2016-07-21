@@ -3154,7 +3154,7 @@ FracturePhaseFieldProblem<dim>::compute_point_stress ()
       value = -1.0 * old_solution_grads[0][1][1];
     }
 
-  pcout << " PStress: " << Utilities::MPI::max(value, mpi_com) << std::endl;
+  pcout << " PStress: " << Utilities::MPI::max(value, mpi_com);
 }
 
 
@@ -3547,16 +3547,16 @@ FracturePhaseFieldProblem<dim>::compute_load ()
 
   if (test_case == TestCase::miehe_tension)
     {
-      pcout << "  Load y: " << Utilities::MPI::sum(load_value[1], mpi_com) << std::endl;
+      pcout << "  Load y: " << Utilities::MPI::sum(load_value[1], mpi_com);
     }
   else if (test_case == TestCase::miehe_shear)
     {
-      pcout << "  Load x: " << Utilities::MPI::sum(load_value[0], mpi_com) << std::endl;
+      pcout << "  Load x: " << Utilities::MPI::sum(load_value[0], mpi_com);
     }
   else if (test_case == TestCase::three_point_bending)
     {
       load_value[1] *= -1.0;
-      pcout << "  P11: " << Utilities::MPI::sum(load_value[1], mpi_com) << std::endl;
+      pcout << "  P11: " << Utilities::MPI::sum(load_value[1], mpi_com);
     }
 }
 
@@ -4169,24 +4169,25 @@ redo_step:
         // Set timestep to original timestep
         timestep = tmp_timestep;
 
-        // Compute functional values
-        pcout << std::endl;
-        compute_energy();
-        if (test_case == TestCase::sneddon_2d ||
-            test_case == TestCase::multiple_homo ||
-            test_case == TestCase::multiple_het)
-          {
-            pcout << std::endl;
-            //They are computed below
-            //compute_functional_values();
-            //compute_cod_array();
-          }
-        else
-          {
-            compute_load();
-            if (test_case == TestCase::three_point_bending)
-              compute_point_stress ();
-          }
+        // Compute statistics and print them in a single line:
+        {
+          pcout << std::endl;
+          compute_energy();
+
+          if (test_case == TestCase::sneddon_2d ||
+              test_case == TestCase::multiple_homo ||
+              test_case == TestCase::multiple_het)
+            {
+              // no extra statistics
+            }
+          else
+            {
+              compute_load();
+              if (test_case == TestCase::three_point_bending)
+                compute_point_stress ();
+            }
+          pcout << std::endl;
+        }
 
 
 
