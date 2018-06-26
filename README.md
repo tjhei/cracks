@@ -8,15 +8,22 @@ Features:
 - primal-dual active set method for the irreversibility constraint
 - novel adaptive mesh refinement technique
 
-This is the example program to accompany the paper
+This project was originally developed for the two papers mentioned below, but has been extended considerably since then. The original code versions are available as separate branches in this repository:
 
-T. Heister, M. F. Wheeler, T. Wick:
-A primal-dual active set method and predictor-corrector mesh adaptivity for computing fracture propagation using a phase-field approach.
-Comp. Meth. Appl. Mech. Engrg., Vol. 290 (2015), pp. 466-495
-http://dx.doi.org/10.1016/j.cma.2015.03.009
+1. https://github.com/tjhei/cracks/tree/paper-2015 for
 
-A preprint is available here: 
-http://www.math.clemson.edu/~heister/preprints/HeWheWi15_CMAME_accepted.pdf
+> T. Heister, M. F. Wheeler, T. Wick:
+> A primal-dual active set method and predictor-corrector mesh adaptivity for computing fracture propagation using a phase-field approach.
+> Comp. Meth. Appl. Mech. Engrg., Vol. 290 (2015), pp. 466-495
+> http://dx.doi.org/10.1016/j.cma.2015.03.009
+
+A preprint is available here: http://www.math.clemson.edu/~heister/preprints/HeWheWi15_CMAME_accepted.pdf
+
+2. https://github.com/tjhei/cracks/tree/paper-2018-parallel for
+
+> T. Heister, T. Wick:
+> Parallel solution, adaptivity, computational convergence, and open-source code of 2d and 3d pressurized phase-field fracture problems
+> ArXiv preprint (coming soon)
 
 # How to run
 
