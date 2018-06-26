@@ -2,14 +2,28 @@
   This code is licensed under the "GNU GPL version 2 or later". See
   LICENSE file or https://www.gnu.org/licenses/gpl-2.0.html
 
-  Copyright 2013-2015: Thomas Wick and Timo Heister
+  Copyright 2013-2018: Thomas Wick and Timo Heister
 */
 
-// Geomechanics: Crack with phase-field
-// monolithic approach and a primal dual active set strategy
-// Predictor-corrector mesh adaptivity
-// 2d code version
+// Main features of the program
+// ----------------------------
+// 1. Geomechanics: Crack with phase-field
+// 2. Monolithic approach with extrapolation in time of
+//    the phase-field variable in the u-equation
+// 3. Primal dual active set strategy to treat
+//    crack irreversibility constraint
+// 4. Predictor-corrector mesh adaptivity
+// 5. Parallel computing using MPI, p4est, and trilinos
 
+// References
+// ----------
+// 1. Heister, Wick; ArXiv preprint in June 2018
+//
+// 2. Heister, Wheeler, Wick; Comp. Meth. Appl. Mech. Engrg.,
+//    Vol. 290 (2015), pp. 466-495
+
+
+// Include files from deal.II
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
 #include <deal.II/base/function.h>
@@ -203,6 +217,8 @@ namespace Tensors
     Tensor<1, dim> grad_pf;
     grad_pf[0] = old_solution_grads[q][dim][0];
     grad_pf[1] = old_solution_grads[q][dim][1];
+    if (dim == 3)
+      grad_pf[2] = old_solution_grads[q][dim][2];
 
     return grad_pf;
   }
@@ -213,13 +229,24 @@ namespace Tensors
     unsigned int q,
     const std::vector<std::vector<Tensor<1, dim> > > &old_solution_grads)
   {
-    Tensor<2, dim> structure_continuation;
-    structure_continuation[0][0] = old_solution_grads[q][0][0];
-    structure_continuation[0][1] = old_solution_grads[q][0][1];
-    structure_continuation[1][0] = old_solution_grads[q][1][0];
-    structure_continuation[1][1] = old_solution_grads[q][1][1];
+    Tensor<2,dim> grad_u;
+    grad_u[0][0] =  old_solution_grads[q][0][0];
+    grad_u[0][1] =  old_solution_grads[q][0][1];
 
-    return structure_continuation;
+    grad_u[1][0] =  old_solution_grads[q][1][0];
+    grad_u[1][1] =  old_solution_grads[q][1][1];
+    if (dim == 3)
+      {
+        grad_u[0][2] =  old_solution_grads[q][0][2];
+
+        grad_u[1][2] =  old_solution_grads[q][1][2];
+
+        grad_u[2][0] =  old_solution_grads[q][2][0];
+        grad_u[2][1] =  old_solution_grads[q][2][1];
+        grad_u[2][2] =  old_solution_grads[q][2][2];
+      }
+
+    return grad_u;
   }
 
   template <int dim>
@@ -228,9 +255,9 @@ namespace Tensors
   {
     Tensor<2, dim> identity;
     identity[0][0] = 1.0;
-    identity[0][1] = 0.0;
-    identity[1][0] = 0.0;
     identity[1][1] = 1.0;
+    if (dim == 3)
+      identity[2][2] = 1.0;
 
     return identity;
   }
@@ -244,6 +271,8 @@ namespace Tensors
     Tensor<1, dim> u;
     u[0] = old_solution_values[q](0);
     u[1] = old_solution_values[q](1);
+    if (dim == 3)
+      u[2] = old_solution_values[q](2);
 
     return u;
   }
@@ -256,9 +285,29 @@ namespace Tensors
     Tensor<1, dim> tmp;
     tmp[0] = phi_i_u[0];
     tmp[1] = phi_i_u[1];
+    if (dim == 3)
+      tmp[2] = phi_i_u[2];
+    return tmp;
+  }
+
+  template <int dim>
+  inline
+  double
+  get_divergence_u (const Tensor<2,dim> grad_u)
+  {
+    double tmp;
+    if (dim == 2)
+      {
+        tmp = grad_u[0][0] + grad_u[1][1];
+      }
+    else if (dim == 3)
+      {
+        tmp = grad_u[0][0] + grad_u[1][1] + grad_u[2][2];
+      }
 
     return tmp;
   }
+
 
 }
 
@@ -270,13 +319,12 @@ template <int dim>
 class InitialValuesSneddon : public Function<dim>
 {
 public:
-  InitialValuesSneddon (
-    const double min_cell_diameter)
+  InitialValuesSneddon (const unsigned int n_components, const double min_cell_diameter)
     :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+    Function<dim>(dim+1),
+    n_components (n_components),
+    _min_cell_diameter(min_cell_diameter)
+  {}
 
   virtual double
   value (
@@ -287,6 +335,7 @@ public:
     const Point<dim> &p, Vector<double> &value) const;
 
 private:
+  const unsigned int n_components;
   double _min_cell_diameter;
 
 };
@@ -296,23 +345,26 @@ double
 InitialValuesSneddon<dim>::value (
   const Point<dim> &p, const unsigned int component) const
 {
-  double width = _min_cell_diameter;
-  double height = _min_cell_diameter;///2.0;
-  double top = 2.0 + height;
-  double bottom = 2.0 - height;
-  // Defining the initial crack(s)
-  // 0 = crack
-  // 1 = no crack
-  if (component == dim)
+  double l0 = 1.0;
+  double thickness = 2.0*_min_cell_diameter;
+  double r_squared;
+  if (dim == 2)
+    r_squared = p(0)*p(0);
+  else
+    r_squared = p(0)*p(0)+p(2)*p(2);
+
+  if (component == n_components-1)
     {
-      if (((p(0) >= 1.8 - width) && (p(0) <= 2.2 + width))
-          && ((p(1) >= bottom) && (p(1) <= top)))
+      // adjust r by h?
+      if ( (r_squared <= l0*l0)
+          &&
+           (abs(2.0*p(1)) <= thickness) )
         return 0.0;
       else
         return 1.0;
     }
-
-  return 0.0;
+  else
+    return 0.0;
 }
 
 template <int dim>
@@ -337,18 +389,22 @@ public:
 
   virtual double
   value (
-    const Point<dim> &p, const unsigned int component = 0) const
+    const Point<dim> &p, const unsigned int /*component*/ = 0) const
   {
-    double dist = 0.0;
-    Point<dim> left(1.8, 2.0);
-    Point<dim> right(2.2, 2.0);
+    // TODO: is this correct?
+    double dist = (dim==2)? (std::sqrt(p(1)*p(1))) : (std::sqrt(p(1)*p(1)+p(2)*p(2)));
 
-    if (p(0)<1.8)
+    double l0 = 1.0;
+    Point<dim> left;
+    left(0)=-l0/2.0;
+    Point<dim> right;
+    right(0)=l0/2.0;
+
+    if (p(0)<left(0))
       dist = left.distance(p);
-    else if (p(0)>2.2)
+    else if (p(0)>right(0))
       dist = right.distance(p);
-    else
-      dist=std::abs(p(1)-2.0);
+
     return 1.0 - exp(-dist/eps);
   }
 
@@ -365,10 +421,10 @@ public:
     : exact(eps)
   {}
 
-  void compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
-                                          const std::vector<std::vector<Tensor<1,dim> > > &duh,
-                                          const std::vector<std::vector<Tensor<2,dim> > > &dduh,
-                                          const std::vector<Point<dim> >                  &normals,
+  void compute_derived_quantities_vector (const std::vector<Vector<double> >              &/*uh*/,
+                                          const std::vector<std::vector<Tensor<1,dim> > > &/*duh*/,
+                                          const std::vector<std::vector<Tensor<2,dim> > > &/*dduh*/,
+                                          const std::vector<Point<dim> >                  &/*normals*/,
                                           const std::vector<Point<dim> >                   &evaluation_points,
                                           std::vector<Vector<double> >                    &computed_quantities) const
 
@@ -407,13 +463,12 @@ template <int dim>
 class InitialValuesMultipleHomo : public Function<dim>
 {
 public:
-  InitialValuesMultipleHomo (
-    const double min_cell_diameter)
+  InitialValuesMultipleHomo (const unsigned int n_components, const double min_cell_diameter)
     :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+    Function<dim> (n_components),
+    n_components (n_components),
+    _min_cell_diameter (min_cell_diameter)
+  {}
 
   virtual double
   value (
@@ -424,8 +479,8 @@ public:
     const Point<dim> &p, Vector<double> &value) const;
 
 private:
+  const unsigned int n_components;
   double _min_cell_diameter;
-
 };
 
 template <int dim>
@@ -439,7 +494,7 @@ InitialValuesMultipleHomo<dim>::value (
   // 0 = crack
   // 1 = no crack
   bool example_3 = true;
-  if (component == dim)
+  if (component == n_components-1)
     {
       if (example_3)
         {
@@ -490,13 +545,12 @@ template <int dim>
 class InitialValuesMultipleHet : public Function<dim>
 {
 public:
-  InitialValuesMultipleHet (
-    const double min_cell_diameter)
+  InitialValuesMultipleHet (const unsigned int n_components, const double min_cell_diameter)
     :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+      Function<dim> (n_components),
+      n_components (n_components),
+      _min_cell_diameter (min_cell_diameter)
+    {}
 
   virtual double
   value (
@@ -507,8 +561,8 @@ public:
     const Point<dim> &p, Vector<double> &value) const;
 
 private:
+  const unsigned int n_components;
   double _min_cell_diameter;
-
 };
 
 template <int dim>
@@ -522,9 +576,24 @@ InitialValuesMultipleHet<dim>::value (
   // 0 = crack
   // 1 = no crack
   bool example_3 = true;
-  if (component == dim)
+  if (component == n_components-1)
     {
-      if (example_3)
+      if (dim == 3)
+        {
+          if (((p(0) >= 2.6 - width/2.0) && (p(0) <= 2.6 + width/2.0))
+              && ((p(1) >= 3.8 - width/2.0) && (p(1) <= 5.5 + width/2.0))
+              && (p(2) >=4 - width/2.0) && (p(2) <=4 + width/2.0)
+             )
+            return 0.0;
+          else if (((p(0) >= 5.5 - width/2.0) && (p(0) <= 7.0 + width/2.0))
+                   && ((p(1) >= 4.0 - width/2.0) && (p(1) <= 4.0 + width/2.0))
+                   && (p(2) >=6 - width/2.0) && (p(2) <=6 + width/2.0)
+                  )
+            return 0.0;
+          else
+            return 1.0;
+        }
+      else if (example_3)
         {
           // Example 3 of our paper
           if (((p(0) >= 2.5 - width/2.0) && (p(0) <= 2.5 + width/2.0))
@@ -565,16 +634,16 @@ InitialValuesMultipleHet<dim>::vector_value (
 
 
 template <int dim>
-class InitialValuesMiehe : public Function<dim>
+class InitialValuesTensionOrShear : public Function<dim>
 {
 public:
-  InitialValuesMiehe (
-    const double min_cell_diameter)
+  InitialValuesTensionOrShear (const unsigned int n_components, 
+		      const double min_cell_diameter)
     :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+      Function<dim> (n_components),
+      n_components (n_components),
+      _min_cell_diameter (min_cell_diameter)
+    {}
 
   virtual double
   value (
@@ -585,19 +654,19 @@ public:
     const Point<dim> &p, Vector<double> &value) const;
 
 private:
+  const unsigned int n_components;
   double _min_cell_diameter;
-
 };
 
 template <int dim>
 double
-InitialValuesMiehe<dim>::value (
+InitialValuesTensionOrShear<dim>::value (
   const Point<dim> & /*p*/, const unsigned int component) const
 {
   // Defining the initial crack(s)
   // 0 = crack
   // 1 = no crack
-  if (component == dim)
+  if (component == n_components-1)
     {
       return 1.0;
     }
@@ -607,26 +676,27 @@ InitialValuesMiehe<dim>::value (
 
 template <int dim>
 void
-InitialValuesMiehe<dim>::vector_value (
+InitialValuesTensionOrShear<dim>::vector_value (
   const Point<dim> &p, Vector<double> &values) const
 {
   for (unsigned int comp = 0; comp < this->n_components; ++comp)
-    values(comp) = InitialValuesMiehe<dim>::value(p, comp);
+    values(comp) = InitialValuesTensionOrShear<dim>::value(p, comp);
 }
 
 
 // Several classes for Dirichlet boundary conditions
-// for displacements for the single-edge notched test (Miehe 2010)
-// Example 2a (Miehe tension)
+// for displacements for the single-edge notched test (for phase-field see Miehe et al. 2010)
+// Example 2a (tension test)
+// Example 2b (shear test; see below)
 template <int dim>
-class BoundaryParabelTension : public Function<dim>
+class BoundaryTensionTest : public Function<dim>
 {
 public:
-  BoundaryParabelTension (const double time)
-    : Function<dim>(dim+1)
-  {
-    _time = time;
-  }
+  BoundaryTensionTest (const unsigned int n_components, const double time)
+    : Function<dim>(n_components),
+    n_components (n_components),
+    _time (time)
+  {}
 
   virtual double value (const Point<dim>   &p,
                         const unsigned int  component = 0) const;
@@ -635,24 +705,23 @@ public:
                              Vector<double>   &value) const;
 
 private:
+  const unsigned int n_components;
   double _time;
-
 };
 
-// The boundary values are given to component
-// with number 0.
 template <int dim>
 double
-BoundaryParabelTension<dim>::value (const Point<dim>  &p,
+BoundaryTensionTest<dim>::value (const Point<dim>  &p,
                                     const unsigned int component) const
 {
   Assert (component < this->n_components,
           ExcIndexRange (component, 0, this->n_components));
 
+  Assert(dim==2, ExcNotImplemented());
 
   double dis_step_per_timestep = 1.0;
 
-  if (component == 1)
+  if (component == 1)  // u_y
     {
       return ( ((p(1) == 1.0) && (p(0) <= 1.0) && (p(0) >= 0.0))
                ?
@@ -666,31 +735,29 @@ BoundaryParabelTension<dim>::value (const Point<dim>  &p,
 }
 
 
-
 template <int dim>
 void
-BoundaryParabelTension<dim>::vector_value (const Point<dim> &p,
+BoundaryTensionTest<dim>::vector_value (const Point<dim> &p,
                                            Vector<double>   &values) const
 {
   for (unsigned int c=0; c<this->n_components; ++c)
-    values (c) = BoundaryParabelTension<dim>::value (p, c);
+    values (c) = BoundaryTensionTest<dim>::value (p, c);
 }
 
 
 
 
 // Dirichlet boundary conditions for
-// Miehe's et al. shear test
+// Miehe's et al. shear test 2010
 // Example 2b
 template <int dim>
-class BoundaryParabelShear : public Function<dim>
+class BoundaryShearTest : public Function<dim>
 {
 public:
-  BoundaryParabelShear (const double time)
-    : Function<dim>(dim+1)
-  {
-    _time = time;
-  }
+  BoundaryShearTest (const unsigned int n_components, const double time)
+    : Function<dim>(n_components),
+    _time (time)
+  {}
 
   virtual double value (const Point<dim>   &p,
                         const unsigned int  component = 0) const;
@@ -703,11 +770,9 @@ private:
 
 };
 
-// The boundary values are given to component
-// with number 0.
 template <int dim>
 double
-BoundaryParabelShear<dim>::value (const Point<dim>  &p,
+BoundaryShearTest<dim>::value (const Point<dim>  &p,
                                   const unsigned int component) const
 {
   Assert (component < this->n_components,
@@ -724,6 +789,12 @@ BoundaryParabelShear<dim>::value (const Point<dim>  &p,
 
     }
 
+  if (component == dim)
+    {
+      return ( ((p(1) == 1.0) )
+               ?
+               (1.0) * dis_step_per_timestep : 0 );
+    }
 
   return 0;
 }
@@ -732,11 +803,11 @@ BoundaryParabelShear<dim>::value (const Point<dim>  &p,
 
 template <int dim>
 void
-BoundaryParabelShear<dim>::vector_value (const Point<dim> &p,
+BoundaryShearTest<dim>::vector_value (const Point<dim> &p,
                                          Vector<double>   &values) const
 {
   for (unsigned int c=0; c<this->n_components; ++c)
-    values (c) = BoundaryParabelShear<dim>::value (p, c);
+    values (c) = BoundaryShearTest<dim>::value (p, c);
 }
 
 
@@ -744,11 +815,10 @@ template <int dim>
 class BoundaryThreePoint : public Function<dim>
 {
 public:
-  BoundaryThreePoint (const double time)
-    : Function<dim>(dim+1)
-  {
-    _time = time;
-  }
+  BoundaryThreePoint (const unsigned int n_components, const double time)
+    : Function<dim>(n_components),
+      _time (time)
+  {}
 
   virtual double value (const Point<dim>   &p,
                         const unsigned int  component = 0) const;
@@ -778,7 +848,10 @@ BoundaryThreePoint<dim>::value (const Point<dim>  &p,
     {
       return 1.0 * _time *dis_step_per_timestep;
     }
-
+  if (component == dim+1)
+    {
+      return 1.0 * dis_step_per_timestep;
+    }
 
   return 0;
 }
@@ -795,82 +868,250 @@ BoundaryThreePoint<dim>::vector_value (const Point<dim> &p,
 }
 
 
-// Main program
+struct OuterSolverType
+{
+  enum Enum {active_set, simple_monolithic};
+
+  static std::string options()
+  {
+    return std::string("active set|simple monolithic");
+  }
+
+  static Enum parse(const std::string &str)
+  {
+    if (str=="active set")
+      return OuterSolverType::active_set;
+    else if (str=="simple monolithic")
+      return OuterSolverType::simple_monolithic;
+    else
+      AssertThrow(false, ExcNotImplemented());
+    return OuterSolverType::active_set;
+  }
+};
+
+struct TestCase
+{
+  enum Enum {sneddon, miehe_tension, miehe_shear, miehe_shear_eps_slit, multiple_homo, multiple_het, three_point_bending};
+
+  static std::string options()
+  {
+    return std::string("sneddon|miehe tension|miehe shear|miehe shear eps slit|multiple homo|multiple het|three point bending");
+  }
+
+  static Enum parse(const std::string &str)
+  {
+    if (str=="sneddon")
+      return TestCase::sneddon;
+    else if (str=="miehe tension")
+      return TestCase::miehe_tension; // straight crack
+    else if (str=="miehe shear")
+      return TestCase::miehe_shear; // curved crack
+    else if (str=="miehe shear eps slit")
+      return TestCase::miehe_shear_eps_slit;
+    else if (str=="multiple homo")
+      return TestCase::multiple_homo; // multiple fractures homogeneous material
+    else if (str=="multiple het")
+      return TestCase::multiple_het; // multiple fractures heterogeneous material
+    else if (str=="three point bending")
+      return TestCase::three_point_bending;
+    else
+      AssertThrow(false, ExcNotImplemented());
+    return TestCase::sneddon;
+  }
+};
+
+struct RefinementStrategy
+{
+  enum Enum {phase_field_ref, phase_field_ref_three_point_top, fixed_preref_sneddon, fixed_preref_miehe_tension,
+             fixed_preref_miehe_shear, fixed_preref_multiple_homo, fixed_preref_multiple_het,
+             global, mix
+            };
+
+  static std::string options()
+  {
+    return std::string("phase field|phase field three point top|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix");
+  }
+
+  static Enum parse(const std::string &str)
+  {
+    if (str=="phase field")
+      return RefinementStrategy::phase_field_ref;
+    else if (str=="phase field three point top")
+      return RefinementStrategy::phase_field_ref_three_point_top;
+    else if (str=="fixed preref sneddon")
+      return RefinementStrategy::fixed_preref_sneddon;
+    else if (str=="fixed preref miehe tension")
+      return RefinementStrategy::fixed_preref_miehe_tension;
+    else if (str=="fixed preref miehe shear")
+      return RefinementStrategy::fixed_preref_miehe_shear;
+    else if (str=="fixed preref multiple homo")
+      return RefinementStrategy::fixed_preref_multiple_homo;
+    else if (str=="fixed preref multiple het")
+      return RefinementStrategy::fixed_preref_multiple_het;
+    else if (str=="global")
+      return RefinementStrategy::global;
+    else if (str=="mix")
+      return RefinementStrategy::mix;
+    else
+      AssertThrow(false, ExcNotImplemented());
+    return RefinementStrategy::phase_field_ref;
+  }
+};
+
+
+template <int dim>
+struct Introspection
+{
+  unsigned int n_components;
+  unsigned int n_blocks;
+
+  struct ComponentMasks
+  {
+    ComponentMask displacements;
+    ComponentMask displacement[dim];
+    ComponentMask phase_field;
+  };
+  ComponentMasks component_masks;
+
+  struct ComponentIndices
+  {
+    unsigned int displacement[dim];
+    unsigned int velocity[dim];
+    unsigned int phase_field;
+  };
+  ComponentIndices component_indices;
+
+  struct Extractors
+  {
+    FEValuesExtractors::Vector displacement;
+    FEValuesExtractors::Vector velocity;
+    FEValuesExtractors::Scalar phase_field;
+  };
+  Extractors extractors;
+
+  std::vector<unsigned int> components_to_blocks;
+
+  std::vector<const FiniteElement<dim,dim>*> fes;
+  std::vector<unsigned int> multiplicities;
+
+  Introspection(ParameterHandler &prm);
+};
+
+template <int dim>
+Introspection<dim>::Introspection(ParameterHandler &prm)
+{
+  prm.enter_subsection("Global parameters");
+  const unsigned int degree = prm.get_integer("FE degree");
+  prm.leave_subsection();
+  prm.enter_subsection("Solver parameters");
+  const bool direct_solver = prm.get_bool("Use Direct Inner Solver");
+  prm.leave_subsection();
+
+
+  fes.push_back(new FE_Q<dim>(degree));
+  multiplicities.push_back(dim);
+  fes.push_back(new FE_Q<dim>(degree));
+  multiplicities.push_back(1);
+
+  n_components = dim + 1;
+  if (direct_solver)
+    n_blocks = 1;
+  else
+    n_blocks = 1 + 1;
+
+  {
+    unsigned int c = 0;
+    for (unsigned int d=0; d<dim; ++d)
+      component_indices.displacement[d] = c++;
+    component_indices.phase_field = c++;
+  }
+
+  {
+    component_masks.displacements = ComponentMask(n_components, false);
+    for (unsigned int d=0; d<dim; ++d)
+      {
+        component_masks.displacement[d] = ComponentMask(n_components, false);
+        component_masks.displacement[d].set(d, true);
+        component_masks.displacements.set(d, true);
+      }
+
+    component_masks.phase_field = ComponentMask(n_components, false);
+    component_masks.phase_field.set(component_indices.phase_field, true);
+  }
+  {
+    extractors.displacement = FEValuesExtractors::Vector(component_indices.displacement[0]);
+    extractors.phase_field = FEValuesExtractors::Scalar(component_indices.phase_field);
+  }
+  {
+    components_to_blocks.resize(n_components, 0);
+    unsigned int block = 0;
+    block += direct_solver ? 0 : 1;
+    components_to_blocks[component_indices.phase_field] = block;
+  }
+}
+
+
+
 template <int dim>
 class FracturePhaseFieldProblem
 {
 public:
 
-  FracturePhaseFieldProblem (
-    const unsigned int degree, ParameterHandler &);
-  void
-  run ();
-  static void
-  declare_parameters (ParameterHandler &prm);
+  FracturePhaseFieldProblem (ParameterHandler &);
+  void run ();
+  static void declare_parameters (ParameterHandler &prm);
 
 private:
 
-  void
-  set_runtime_parameters ();
-  void
-  determine_mesh_dependent_parameters();
-  void
-  setup_system ();
-  void
-  assemble_system (bool residual_only=false);
-  void
-  assemble_nl_residual ();
+  void set_runtime_parameters ();
+  void determine_mesh_dependent_parameters();
+  void setup_mesh(Triangulation<dim> &tria);
+  void setup_system ();
+  void assemble_system (bool residual_only=false);
+  void assemble_nl_residual ();
 
   void assemble_diag_mass_matrix();
 
-  void
-  set_initial_bc (
-    const double time);
-  void
-  set_newton_bc ();
+  void set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints);
+  void set_initial_bc (const double time);
+  void set_newton_bc ();
 
-  unsigned int
-  solve ();
+  unsigned int solve ();
 
   double newton_active_set();
 
-  double
-  newton_iteration (
-    const double time);
+  double newton_iteration (const double time);
 
-  double
-  compute_point_value (
+  double compute_point_value (
     const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
     const Point<dim> &p, const unsigned int component) const;
 
   void
   compute_point_stress ();
 
-  void
-  output_results () const;
+  void output_results () const;
 
-  void
-  compute_functional_values ();
+  void compute_functional_values ();
 
   void
   compute_load();
 
   void compute_cod_array ();
 
-  double
-  compute_cod (
-    const double eval_line);
+  void compute_tcv ();
+
+  double compute_cod(const double eval_line);
 
   double compute_energy();
 
-  bool
-  refine_mesh ();
-  void
-  project_back_phase_field ();
+  bool refine_mesh ();
+  void project_back_phase_field ();
 
   MPI_Comm mpi_com;
 
-  const unsigned int degree;
+  Introspection<dim> introspection;
+
+  unsigned int degree;
   ParameterHandler &prm;
 
   parallel::distributed::Triangulation<dim> triangulation;
@@ -907,50 +1148,28 @@ private:
   unsigned int max_no_timesteps;
   double timestep, timestep_size_2, time;
   unsigned int switch_timestep;
-  struct OuterSolverType
-  {
-    enum Enum {active_set, simple_monolithic};
-  };
-  typename OuterSolverType::Enum outer_solver;
-
-  struct TestCase
-  {
-    enum Enum {sneddon_2d, miehe_tension, miehe_shear, multiple_homo, multiple_het, three_point_bending};
-  };
-  typename TestCase::Enum test_case;
-
-  struct RefinementStrategy
-  {
-    enum Enum {phase_field_ref, fixed_preref_sneddon, fixed_preref_miehe_tension,
-               fixed_preref_miehe_shear, fixed_preref_multiple_homo, fixed_preref_multiple_het,
-               global, mix, phase_field_ref_three_point_top
-              };
-  };
-  typename RefinementStrategy::Enum refinement_strategy;
+  OuterSolverType::Enum outer_solver;
+  TestCase::Enum test_case;
+  RefinementStrategy::Enum refinement_strategy;
 
   bool direct_solver;
+  double linear_solver_tolerance;
 
-  double force_structure_x_biot, force_structure_y_biot;
   double force_structure_x, force_structure_y;
-
-  // Biot parameters
-  double c_biot, alpha_biot, lame_coefficient_biot, K_biot, density_biot;
-
-  double gravity_x, gravity_y, volume_source, traction_x, traction_y,
-         traction_x_biot, traction_y_biot;
 
   // Structure parameters
   double density_structure;
   double lame_coefficient_mu, lame_coefficient_lambda, poisson_ratio_nu;
 
-  // Other parameters to control the fluid mesh motion
-  double cell_diameter;
-
   FunctionParser<1> func_pressure;
-  double constant_k, alpha_eps,
-         G_c, viscosity_biot, gamma_penal;
+  double constant_k, alpha_eps, G_c, gamma_penal;
 
-  double E_modulus, E_prime;
+  FunctionParser<1> force_h_func;
+
+  // Porous medium constant
+  double alpha_biot;
+
+  double E_modulus;
   double min_cell_diameter, norm_part_iterations, value_phase_field_for_refinement;
 
   unsigned int n_global_pre_refine, n_local_pre_refine, n_refinement_cycles;
@@ -964,22 +1183,20 @@ private:
   std::string filename_basis;
   double old_timestep, old_old_timestep;
   bool use_old_timestep_pf;
+  std::string mesh;
 
-
+  unsigned int first_step_linear_it;
 };
 
-// The constructor of this class is comparable
-// to other tutorials steps, e.g., step-22, and step-31.
+
 template <int dim>
-FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (
-  const unsigned int degree, ParameterHandler &param)
+FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (ParameterHandler &param)
   :
   mpi_com(MPI_COMM_WORLD),
-  degree(degree),
+  introspection(param),
   prm(param),
   triangulation(mpi_com),
-
-  fe(FE_Q<dim>(degree), dim, FE_Q<dim>(degree), 1),
+  fe(introspection.fes, introspection.multiplicities),
   dof_handler(triangulation),
 
   pcout(std::cout, (Utilities::MPI::this_mpi_process(mpi_com) == 0)),
@@ -996,6 +1213,12 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
 {
   prm.enter_subsection("Global parameters");
   {
+    prm.declare_entry("Dimension", "2",
+                      Patterns::Integer(0));
+
+    prm.declare_entry("FE degree", "1",
+                      Patterns::Integer(1));
+
     prm.declare_entry("Global pre-refinement steps", "1",
                       Patterns::Integer(0));
 
@@ -1014,17 +1237,19 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("Switch timestep after steps", "0", Patterns::Integer(0));
 
     prm.declare_entry("outer solver", "active set",
-                      Patterns::Selection("active set|simple monolithic"));
+                      Patterns::Selection(OuterSolverType::options()));
 
-    prm.declare_entry("test case", "sneddon 2d", Patterns::Selection("sneddon 2d|miehe tension|miehe shear|multiple homo|multiple het|three point bending"));
+    prm.declare_entry("test case", "sneddon", Patterns::Selection(TestCase::options()));
 
     prm.declare_entry("ref strategy", "phase field",
-                      Patterns::Selection("phase field|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix|phase field three point top"));
+                      Patterns::Selection(RefinementStrategy::options()));
 
     prm.declare_entry("value phase field for refinement", "0.0", Patterns::Double(0));
 
     prm.declare_entry("Output filename", "solution_",
                       Patterns::Anything());
+    prm.declare_entry("Mesh", "",
+                      Patterns::Anything(), "overwrite default mesh for the given test problem using <format> <filename> where format is ucd|msh|rect");
   }
   prm.leave_subsection();
 
@@ -1033,6 +1258,10 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("K reg", "1.0 * h", Patterns::Anything());
 
     prm.declare_entry("Eps reg", "1.0 * h", Patterns::Anything());
+    prm.declare_entry("force h smaller than",
+                      "1e20",
+                      Patterns::Anything(),
+                      "give a function f(eps) where h \\leq f(eps) will be satisfied if inside crack.");
 
     prm.declare_entry("Gamma penalization", "0.0", Patterns::Double(0));
 
@@ -1059,6 +1288,9 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
   {
     prm.declare_entry("Use Direct Inner Solver", "false",
                       Patterns::Bool());
+
+    prm.declare_entry("Linear solver tolerance", "1e-8",
+                      Patterns::Double(0));
 
     prm.declare_entry("Newton lower bound", "1.0e-10",
                       Patterns::Double(0));
@@ -1087,6 +1319,125 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
 }
 
 
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::setup_mesh(Triangulation<dim> &tria)
+{
+  std::string mesh_info;
+
+  switch (test_case)
+    {
+    case TestCase::miehe_shear:
+    case TestCase::miehe_tension:
+      mesh_info = "ucd meshes/unit_slit.inp";
+      break;
+
+    case TestCase::miehe_shear_eps_slit:
+      mesh_info = "rect 0 0 1 1";
+      break;
+
+    case TestCase::sneddon:
+      if (dim==2)
+        mesh_info = "rect -10 -10 10 10";
+      else
+        mesh_info = "rect -10 -10 -10 10 10 10";
+      break;
+
+    case TestCase::multiple_homo:
+    case TestCase::multiple_het:
+      if (dim==2)
+        mesh_info = "ucd meshes/unit_square_4.inp";
+      else
+        mesh_info = "ucd meshes/unit_cube_10.inp";
+      break;
+
+    case TestCase::three_point_bending:
+      //mesh_info = "msh meshes/threepoint-notsym_b.msh";
+      mesh_info = "msh meshes/threepoint-notsym.msh";
+      //mesh_info = "msh meshes/threepoint.msh";
+      break;
+    }
+
+
+
+  // overwrite defaults from parameter file if given
+  if (mesh != "")
+    mesh_info = mesh;
+
+  AssertThrow(mesh_info!="", ExcMessage("Error: no mesh information given."));
+
+  std::istringstream is(mesh_info);
+  std::string type;
+  std::string grid_name = "";
+  typename GridIn<dim>::Format format = GridIn<dim>::ucd;
+  is >> type;
+
+  if (type=="rect")
+    {
+      Point<dim> p1, p2;
+      if (dim==2)
+        is >> p1[0] >> p1[1] >> p2[0] >> p2[1];
+      else
+        is >> p1[0] >> p1[1] >> p1[2] >> p2[0] >> p2[1] >> p2[2];
+
+      GridGenerator::hyper_rectangle(tria,
+                                     p1,
+                                     p2,
+                                     true);
+    }
+  else if (type=="msh")
+    {
+      format = GridIn<dim>::msh;
+      is >> grid_name;
+    }
+  else if (type=="ucd")
+    {
+      format = GridIn<dim>::ucd;
+      is >> grid_name;
+    }
+
+  if (grid_name != "")
+    {
+      GridIn<dim> grid_in;
+      grid_in.attach_triangulation(tria);
+      std::ifstream input_file(grid_name.c_str());
+
+      grid_in.read(input_file, format);
+    }
+
+  //GridTools::distort_random(0.35, triangulation);
+
+  if (test_case == TestCase::three_point_bending)
+    {
+      double eps_machine = 1.0e-10;
+
+      typename Triangulation<dim>::active_cell_iterator
+      cell = tria.begin_active(),
+      endc = tria.end();
+      for (; cell!=endc; ++cell)
+        for (unsigned int f=0;
+             f < GeometryInfo<dim>::faces_per_cell;
+             ++f)
+          {
+            const Point<dim> face_center = cell->face(f)->center();
+            if (cell->face(f)->at_boundary())
+              {
+                if ((face_center[1] < 2.0+eps_machine) && (face_center[1] > 2.0-eps_machine)
+                    //&& (face_center[0] < 0.000000001) && (face_center[0] > -3.9999999999)
+                   )
+                  cell->face(f)->set_boundary_id(3);
+                else if ((face_center[0] < -4.0+eps_machine) && (face_center[0] > -4.0-eps_machine)
+                         //&& (face_center[0] < 0.000000001) && (face_center[0] > -3.9999999999)
+                        )
+                    cell->face(f)->set_boundary_id(0);
+                else if ((face_center[0] < 4.0+eps_machine) && (face_center[0] > 4.0-eps_machine)
+                         //&& (face_center[0] < 0.000000001) && (face_center[0] > -3.9999999999)
+                        )
+                    cell->face(f)->set_boundary_id(1);
+              }
+          }
+    }
+}
 
 // In this method, we set up runtime parameters that
 // could also come from a paramter file.
@@ -1096,6 +1447,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 {
   // Get parameters from file
   prm.enter_subsection("Global parameters");
+  degree = prm.get_integer("FE degree");
   n_global_pre_refine = prm.get_integer("Global pre-refinement steps");
   n_local_pre_refine = prm.get_integer("Local pre-refinement steps");
   n_refinement_cycles = prm.get_integer("Adaptive refinement cycles");
@@ -1104,51 +1456,15 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   timestep_size_2 = prm.get_double("Timestep size to switch to");
   switch_timestep = prm.get_integer("Switch timestep after steps");
 
-  if (prm.get("outer solver")=="active set")
-    outer_solver = OuterSolverType::active_set;
-  else if (prm.get("outer solver")=="simple monolithic")
-    outer_solver = OuterSolverType::simple_monolithic;
-
-  if (prm.get("test case")=="sneddon 2d")
-    test_case = TestCase::sneddon_2d;
-  else if (prm.get("test case")=="miehe tension")
-    test_case = TestCase::miehe_tension; // straight crack
-  else if (prm.get("test case")=="miehe shear")
-    test_case = TestCase::miehe_shear; // curved crack
-  else if (prm.get("test case")=="multiple homo")
-    test_case = TestCase::multiple_homo; // multiple fractures homogeneous material
-  else if (prm.get("test case")=="multiple het")
-    test_case = TestCase::multiple_het; // multiple fractures heterogeneous material
-  else if (prm.get("test case")=="three point bending")
-    test_case = TestCase::three_point_bending;
-  else
-    AssertThrow(false, ExcNotImplemented());
-
-  if (prm.get("ref strategy")=="phase field")
-    refinement_strategy = RefinementStrategy::phase_field_ref;
-  else if (prm.get("ref strategy")=="fixed preref sneddon")
-    refinement_strategy = RefinementStrategy::fixed_preref_sneddon;
-  else if (prm.get("ref strategy")=="fixed preref miehe tension")
-    refinement_strategy = RefinementStrategy::fixed_preref_miehe_tension;
-  else if (prm.get("ref strategy")=="fixed preref miehe shear")
-    refinement_strategy = RefinementStrategy::fixed_preref_miehe_shear;
-  else if (prm.get("ref strategy")=="fixed preref multiple homo")
-    refinement_strategy = RefinementStrategy::fixed_preref_multiple_homo;
-  else if (prm.get("ref strategy")=="fixed preref multiple het")
-    refinement_strategy = RefinementStrategy::fixed_preref_multiple_het;
-  else if (prm.get("ref strategy")=="global")
-    refinement_strategy = RefinementStrategy::global;
-  else if (prm.get("ref strategy")=="mix")
-    refinement_strategy = RefinementStrategy::mix;
-  else if (prm.get("ref strategy")=="phase field three point top")
-    refinement_strategy = RefinementStrategy::phase_field_ref_three_point_top;
-  else
-    AssertThrow(false, ExcNotImplemented());
+  outer_solver = OuterSolverType::parse(prm.get("outer solver"));
+  test_case = TestCase::parse(prm.get("test case"));
+  refinement_strategy = RefinementStrategy::parse(prm.get("ref strategy"));
 
   value_phase_field_for_refinement
     = prm.get_double("value phase field for refinement");
 
   filename_basis  = prm.get ("Output filename");
+  mesh = prm.get("Mesh");
 
   prm.leave_subsection();
 
@@ -1158,6 +1474,9 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   // They are given some values below
   constant_k = 0;//prm.get_double("K reg");
   alpha_eps = 0;//prm.get_double("Eps reg");
+  force_h_func.initialize("eps",
+                          prm.get("force h smaller than"),
+                          FunctionParser<1>::ConstMap());
 
   // Switch between active set strategy
   // and simple penalization
@@ -1179,7 +1498,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   alpha_biot = 0.0;
 
 
-  if (test_case == TestCase::sneddon_2d ||
+  if (test_case == TestCase::sneddon ||
       test_case == TestCase::multiple_homo ||
       test_case == TestCase::multiple_het)
     {
@@ -1193,7 +1512,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
     }
   else
     {
-      // Miehe 2010
+      // Parameters used by Miehe et al. 2010
       lame_coefficient_mu = prm.get_double("Lame mu");
       lame_coefficient_lambda = prm.get_double("Lame lambda");
 
@@ -1204,79 +1523,28 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 
   prm.leave_subsection();
 
-  E_prime = E_modulus / (1.0 - poisson_ratio_nu * poisson_ratio_nu);
-
   // A variable to count the number of time steps
   timestep_number = 0;
 
   // Counts total time
   time = 0;
 
-  // In the following, we read a *.inp grid from a file.
-  // The configuration is based on Sneddon's benchmark (1969)
-  // and Miehe 2010 (tension and shear)
-  typename GridIn<dim>::Format format = GridIn<dim>::ucd;
-
-  std::string grid_name;
-  if (test_case == TestCase::sneddon_2d ||
-      test_case == TestCase::multiple_homo ||
-      test_case == TestCase::multiple_het)
-    grid_name = "meshes/unit_square_4.inp";
-  else if (test_case == TestCase::three_point_bending)
-    {
-      grid_name = "meshes/threepoint.msh";
-      format = GridIn<dim>::msh;
-    }
-  else
-    grid_name  = "meshes/unit_slit.inp";
-
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(triangulation);
-  std::ifstream input_file(grid_name.c_str());
-  Assert(dim==2, ExcInternalError());
-  grid_in.read(input_file, format);
-
-
-  if (test_case == TestCase::three_point_bending)
-    {
-      double eps_machine = 1.0e-10;
-
-      typename Triangulation<dim>::active_cell_iterator
-      cell = triangulation.begin_active(),
-      endc = triangulation.end();
-      for (; cell!=endc; ++cell)
-        for (unsigned int f=0;
-             f < GeometryInfo<dim>::faces_per_cell;
-             ++f)
-          {
-            const Point<dim> face_center = cell->face(f)->center();
-            if (cell->face(f)->at_boundary())
-              {
-                if ((face_center[1] < 2.0+eps_machine) && (face_center[1] > 2.0-eps_machine)
-                   )
-                  cell->face(f)->set_boundary_id(3);
-                else if ((face_center[0] < -4.0+eps_machine) && (face_center[0] > -4.0-eps_machine)
-                        )
-                  cell->face(f)->set_boundary_id(0);
-                else if ((face_center[0] < 4.0+eps_machine) && (face_center[0] > 4.0-eps_machine)
-                        )
-                  cell->face(f)->set_boundary_id(1);
-              }
-          }
-    }
-
+  setup_mesh (triangulation);
   triangulation.refine_global(n_global_pre_refine);
 
-  pcout << "Cells:\t" << triangulation.n_active_cells() << std::endl;
+  pcout << "Cells:\t" << triangulation.n_global_active_cells() << std::endl;
 
 
-  if (test_case == TestCase::multiple_het)
+  if (test_case == TestCase::multiple_het && dim == 2)
     func_emodulus = new BitmapFunction<dim>("test.pgm",0,4,0,4,E_modulus,10.0*E_modulus);
+  if (test_case == TestCase::multiple_het && dim == 3)
+    func_emodulus = new BitmapFunction<dim>("test.pgm",0,10,0,10,E_modulus,10.0*E_modulus);
 
 
 
   prm.enter_subsection("Solver parameters");
   direct_solver = prm.get_bool("Use Direct Inner Solver");
+  linear_solver_tolerance = prm.get_double("Linear solver tolerance");
 
   // Newton tolerances and maximum steps
   lower_bound_newton_residuum = prm.get_double("Newton lower bound");
@@ -1304,59 +1572,66 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   prm.leave_subsection();
 }
 
+/**
+ * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
+ * given by the @p dofs_per_block structure.
+ */
+void  split_by_block (std::vector<IndexSet> &partitioned,
+                      const std::vector<types::global_dof_index> &dofs_per_block,
+                      const IndexSet &whole_set)
+{
+  const unsigned int n_blocks = dofs_per_block.size();
+  Assert(n_blocks>0, ExcInternalError());
+  partitioned.clear();
 
-// This function is similar to many deal.II tuturial steps.
+  partitioned.resize(n_blocks);
+  types::global_dof_index start = 0;
+  for (unsigned int i=0; i<n_blocks; ++i)
+    {
+      partitioned[i] = whole_set.get_view(start, start + dofs_per_block[i]);
+      start += dofs_per_block[i];
+    }
+}
+
+
 template <int dim>
 void
 FracturePhaseFieldProblem<dim>::setup_system ()
 {
-  // We set runtime parameters to drive the problem.
-  // These parameters could also be read from a parameter file that
-  // can be handled by the ParameterHandler object (see step-19)
   system_pde_matrix.clear();
-
   dof_handler.distribute_dofs(fe);
 
-  std::vector<unsigned int> sub_blocks (dim+1,0);
-  sub_blocks[dim] = 1;
+  std::vector<unsigned int> sub_blocks (introspection.n_components, 0);
+  sub_blocks[introspection.component_indices.phase_field] = 1;
   DoFRenumbering::component_wise (dof_handler, sub_blocks);
 
-  FEValuesExtractors::Vector extract_displacement(0);
   constant_modes.clear();
   DoFTools::extract_constant_modes(dof_handler,
-                                   fe.component_mask(extract_displacement), constant_modes);
+                                   introspection.component_masks.displacements,
+                                   constant_modes);
 
-  std::vector<types::global_dof_index> dofs_per_block (2);
-  DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, sub_blocks);
-  const unsigned int n_solid = dofs_per_block[0];
-  const unsigned int n_phase = dofs_per_block[1];
-  pcout << std::endl;
-  pcout << "DoFs: " << n_solid << " solid + " << n_phase << " phase = "
-        << n_solid + n_phase << std::endl;
+  {
+    std::vector<types::global_dof_index> dofs_per_var (2);
+    DoFTools::count_dofs_per_block (dof_handler, dofs_per_var, sub_blocks);
+    const unsigned int n_solid = dofs_per_var[0];
+    const unsigned int n_phase = dofs_per_var[1];
+    pcout << std::endl;
+    pcout << "DoFs: "
+          << n_solid << " solid + "
+          << n_phase << " phase"
+          << " = "
+          << dof_handler.n_dofs() << std::endl;
+  }
 
-  partition.clear();
-  if (direct_solver)
-    {
-      partition.push_back(dof_handler.locally_owned_dofs());
-    }
-  else
-    {
-      partition.push_back(dof_handler.locally_owned_dofs().get_view(0,n_solid));
-      partition.push_back(dof_handler.locally_owned_dofs().get_view(n_solid,n_solid+n_phase));
-    }
+  std::vector<types::global_dof_index> dofs_per_block (introspection.n_blocks);
+  DoFTools::count_dofs_per_block (dof_handler,
+                                  dofs_per_block,
+                                  introspection.components_to_blocks);
 
   IndexSet relevant_set;
   DoFTools::extract_locally_relevant_dofs(dof_handler, relevant_set);
-  partition_relevant.clear();
-  if (direct_solver)
-    {
-      partition_relevant.push_back(relevant_set);
-    }
-  else
-    {
-      partition_relevant.push_back(relevant_set.get_view(0,n_solid));
-      partition_relevant.push_back(relevant_set.get_view(n_solid,n_solid+n_phase));
-    }
+  split_by_block(partition, dofs_per_block, dof_handler.locally_owned_dofs());
+  split_by_block(partition_relevant, dofs_per_block, relevant_set);
 
   {
     constraints_hanging_nodes.clear();
@@ -1370,7 +1645,7 @@ FracturePhaseFieldProblem<dim>::setup_system ()
     constraints_update.reinit(relevant_set);
 
     set_newton_bc();
-    constraints_update.merge(constraints_hanging_nodes);
+    constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
     constraints_update.close();
   }
 
@@ -1381,6 +1656,8 @@ FracturePhaseFieldProblem<dim>::setup_system ()
                                     constraints_update,
                                     false,
                                     Utilities::MPI::this_mpi_process(mpi_com));
+
+    // TODO: set correct coupling!
 
     csp.compress();
     system_pde_matrix.reinit(csp);
@@ -1904,23 +2181,22 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
 
   std::vector<unsigned int> local_dof_indices(dofs_per_cell);
 
-  const FEValuesExtractors::Vector displacements(0);
-  const FEValuesExtractors::Scalar phase_field (dim);
+  // Old Newton values
+  std::vector<Tensor<1, dim> > old_displacement_values(n_q_points);
+  std::vector<Tensor<1, dim> > old_velocity_values(n_q_points);
+  std::vector<double> old_phase_field_values(n_q_points);
 
-  std::vector<Vector<double> > old_solution_values(n_q_points,
-                                                   Vector<double>(dim+1));
+  // Old Newton grads
+  std::vector<Tensor<2,dim> > old_displacement_grads (n_q_points);
+  std::vector<Tensor<1,dim> > old_phase_field_grads (n_q_points);
 
-  std::vector<std::vector<Tensor<1,dim> > > old_solution_grads (n_q_points,
-      std::vector<Tensor<1,dim> > (dim+1));
+  // Old timestep values
+  std::vector<Tensor<1, dim> > old_timestep_displacement_values(n_q_points);
+  std::vector<double> old_timestep_phase_field_values(n_q_points);
+  std::vector<Tensor<1, dim> > old_timestep_velocity_values(n_q_points);
 
-  std::vector<Vector<double> > old_timestep_solution_values(n_q_points,
-                                                            Vector<double>(dim+1));
-
-  std::vector<std::vector<Tensor<1,dim> > > old_timestep_solution_grads (n_q_points,
-      std::vector<Tensor<1,dim> > (dim+1));
-
-  std::vector<Vector<double> > old_old_timestep_solution_values(n_q_points,
-      Vector<double>(dim+1));
+  std::vector<Tensor<1, dim> > old_old_timestep_displacement_values(n_q_points);
+  std::vector<double> old_old_timestep_phase_field_values(n_q_points);
 
   // Declaring test functions:
   std::vector<Tensor<1, dim> > phi_i_u(dofs_per_cell);
@@ -1956,37 +2232,40 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
         local_rhs = 0;
 
         // Old Newton iteration values
-        fe_values.get_function_values (rel_solution, old_solution_values);
-        fe_values.get_function_gradients (rel_solution, old_solution_grads);
+        fe_values[introspection.extractors.displacement].get_function_values (rel_solution, old_displacement_values);
+        fe_values[introspection.extractors.phase_field].get_function_values (rel_solution, old_phase_field_values);
+
+        fe_values[introspection.extractors.displacement].get_function_gradients (rel_solution, old_displacement_grads);
+        fe_values[introspection.extractors.phase_field].get_function_gradients (rel_solution, old_phase_field_grads);
 
         // Old_timestep_solution values
-        fe_values.get_function_values (rel_old_solution, old_timestep_solution_values);
+        fe_values[introspection.extractors.phase_field].get_function_values (rel_old_solution, old_timestep_phase_field_values);
 
         // Old Old_timestep_solution values
-        fe_values.get_function_values (rel_old_old_solution, old_old_timestep_solution_values);
+        fe_values[introspection.extractors.phase_field].get_function_values (rel_old_old_solution, old_old_timestep_phase_field_values);
 
         {
           for (unsigned int q = 0; q < n_q_points; ++q)
             {
               for (unsigned int k = 0; k < dofs_per_cell; ++k)
                 {
-                  phi_i_u[k]       = fe_values[displacements].value(k, q);
-                  phi_i_grads_u[k] = fe_values[displacements].gradient(k, q);
-                  phi_i_pf[k]       = fe_values[phase_field].value (k, q);
-                  phi_i_grads_pf[k] = fe_values[phase_field].gradient (k, q);
+                  phi_i_u[k]        = fe_values[introspection.extractors.displacement].value(k, q);
+                  phi_i_grads_u[k]  = fe_values[introspection.extractors.displacement].gradient(k, q);
+                  phi_i_pf[k]       = fe_values[introspection.extractors.phase_field].value (k, q);
+                  phi_i_grads_pf[k] = fe_values[introspection.extractors.phase_field].gradient (k, q);
 
                 }
 
               // First, we prepare things coming from the previous Newton
               // iteration...
-              double pf = old_solution_values[q](dim);
-              double old_timestep_pf = old_timestep_solution_values[q](dim);
-              double old_old_timestep_pf = old_old_timestep_solution_values[q](dim);
+              double pf = old_phase_field_values[q];
+              double old_timestep_pf = old_timestep_phase_field_values[q];
+              double old_old_timestep_pf = old_old_timestep_phase_field_values[q];
               if (outer_solver == OuterSolverType::simple_monolithic)
                 {
-                  pf = std::max(0.0,old_solution_values[q](dim));
-                  old_timestep_pf = std::max(0.0,old_timestep_solution_values[q](dim));
-                  old_old_timestep_pf = std::max(0.0,old_old_timestep_solution_values[q](dim));
+                  pf = std::max(0.0, old_phase_field_values[q]);
+                  old_timestep_pf = std::max(0.0,old_timestep_phase_field_values[q]);
+                  old_old_timestep_pf = std::max(0.0,old_old_timestep_phase_field_values[q]);
                 }
 
 
@@ -2011,17 +2290,14 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                 pf_extra = old_timestep_pf;
 
 
-              const Tensor<2,dim> grad_u = Tensors
-                                           ::get_grad_u<dim> (q, old_solution_grads);
+              const Tensor<2,dim> grad_u = old_displacement_grads[q];
+              const Tensor<1,dim> grad_pf = old_phase_field_grads[q];
 
-              const Tensor<1,dim> grad_pf = Tensors
-                                            ::get_grad_pf<dim> (q, old_solution_grads);
-
-              const double divergence_u = old_solution_grads[q][0][0] +
-                                          old_solution_grads[q][1][1];
+              const double divergence_u = Tensors
+                  ::get_divergence_u<dim> (grad_u);
 
               const Tensor<2,dim> Identity = Tensors
-                                             ::get_Identity<dim> ();
+                  ::get_Identity<dim> ();
 
               const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
               const double tr_E = trace(E);
@@ -2056,6 +2332,9 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                                   * (phi_i_grads_u[i] + transpose(phi_i_grads_u[i]));
                     const double tr_E_LinU = trace(E_LinU);
 
+                    const double divergence_u_LinU = Tensors
+                                                     ::get_divergence_u<dim> (phi_i_grads_u[i]);
+
                     Tensor<2,dim> stress_term_LinU;
                     stress_term_LinU = lame_coefficient_lambda * tr_E_LinU * Identity
                                        + 2 * lame_coefficient_mu * E_LinU;
@@ -2064,7 +2343,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                     Tensor<2,dim> stress_term_minus_LinU;
 
                     const unsigned int comp_i = fe.system_to_component_index(i).first;
-                    if (comp_i == dim)
+                    if (comp_i == introspection.component_indices.phase_field)
                       {
                         stress_term_plus_LinU = 0;
                         stress_term_minus_LinU = 0;
@@ -2098,7 +2377,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                                  ) * fe_values.JxW(q);
 
                           }
-                        else if (comp_j == dim)
+                        else if (comp_j == introspection.component_indices.phase_field)
                           {
                             // Simple penalization for simple monolithic
                             local_matrix(j,i) += gamma_penal/timestep * 1.0/(cell->diameter() * cell->diameter()) *
@@ -2113,8 +2392,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                + G_c * alpha_eps * phi_i_grads_pf[i] * phi_i_grads_pf[j]
                                // Pressure terms
                                - 2.0 * (alpha_biot - 1.0) * current_pressure *
-                               (pf * (phi_i_grads_u[i][0][0] + phi_i_grads_u[i][1][1])
-                                + phi_i_pf[i] * divergence_u) * phi_i_pf[j]
+                               (pf * divergence_u_LinU + phi_i_pf[i] * divergence_u) * phi_i_pf[j]
                               ) * fe_values.JxW(q);
                           }
 
@@ -2131,7 +2409,9 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                   if (comp_i < dim)
                     {
                       const Tensor<2, dim> phi_i_grads_u =
-                        fe_values[displacements].gradient(i, q);
+                        fe_values[introspection.extractors.displacement].gradient(i, q);
+                      const double divergence_u_LinU = Tensors
+                                                       ::get_divergence_u<dim> (phi_i_grads_u);
 
                       // Solid
                       local_rhs(i) -=
@@ -2139,14 +2419,14 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                         stress_term_plus, phi_i_grads_u)
                          +  decompose_stress_rhs * scalar_product(stress_term_minus, phi_i_grads_u)
                          // Pressure terms
-                         - (alpha_biot - 1.0) * current_pressure * pf_extra * pf_extra * (phi_i_grads_u[0][0] + phi_i_grads_u[1][1])
+                         - (alpha_biot - 1.0) * current_pressure * pf_extra * pf_extra * divergence_u_LinU
                         ) * fe_values.JxW(q);
 
                     }
-                  else if (comp_i == dim)
+                  else if (comp_i == introspection.component_indices.phase_field)
                     {
-                      const double phi_i_pf = fe_values[phase_field].value (i, q);
-                      const Tensor<1,dim> phi_i_grads_pf = fe_values[phase_field].gradient (i, q);
+                      const double phi_i_pf = fe_values[introspection.extractors.phase_field].value (i, q);
+                      const Tensor<1,dim> phi_i_grads_pf = fe_values[introspection.extractors.phase_field].gradient (i, q);
 
                       // Simple penalization
                       local_rhs(i) -= gamma_penal/timestep * 1.0/(cell->diameter() * cell->diameter()) *
@@ -2278,7 +2558,7 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
           for (unsigned int i = 0; i < dofs_per_cell; ++i)
             {
               const unsigned int comp_i = fe.system_to_component_index(i).first;
-              if (comp_i != dim)
+              if (comp_i != introspection.component_indices.phase_field)
                 continue; // only look at phase field
 
               local_rhs (i) += fe_values.shape_value(i, q_point) *
@@ -2289,7 +2569,6 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
         for (unsigned int i=0; i<dofs_per_cell; i++)
           diag_mass(local_dof_indices[i]) += local_rhs(i);
 
-
       }
 
   diag_mass.compress(VectorOperation::add);
@@ -2297,299 +2576,154 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
 }
 
 
-
-// Here, we impose boundary conditions
-// for the system and the first Newton step
+// Here, we impose boundary conditions. If initial_step is true, these are non-zero conditions,
+// otherwise they are homogeneous conditions as we solve the Newton system in update form.
 template <int dim>
 void
-FracturePhaseFieldProblem<dim>::set_initial_bc (
-  const double time)
+FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints)
 {
-  std::map<unsigned int, double> boundary_values;
-  std::vector<bool> component_mask(dim+1, false);
-  if (test_case == TestCase::sneddon_2d ||
-      test_case == TestCase::multiple_homo ||
-      test_case == TestCase::multiple_het)
-    {
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
+    ZeroFunction<dim> f_zero(introspection.n_components);
 
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
+    if (dim == 2)
+      {
+        if (test_case == TestCase::sneddon ||
+            test_case == TestCase::multiple_homo ||
+            test_case == TestCase::multiple_het)
+          {
+                for (unsigned int bc=0;bc<4;++bc)
+            VectorTools::interpolate_boundary_values(dof_handler, bc,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacements);
+          }
+        else if (test_case == TestCase::miehe_tension)
+          {
+            // Tension test (e.g., phase-field by Miehe et al. in 2010)
+            VectorTools::interpolate_boundary_values(dof_handler, 2,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacement[1]);
 
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
+            if (initial_step)
+            VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                     BoundaryTensionTest<dim>(introspection.n_components, time), constraints,
+                                                     introspection.component_masks.displacements);
+            else
+              VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacements);
+          }
+        else if (test_case == TestCase::miehe_shear || test_case == TestCase::miehe_shear_eps_slit)
+          {
+            // Single edge notched shear (e.g., phase-field by Miehe et al. in 2010)
+            VectorTools::interpolate_boundary_values(dof_handler, 0,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacement[1]);
+            VectorTools::interpolate_boundary_values(dof_handler, 1,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacement[1]);
+            VectorTools::interpolate_boundary_values(dof_handler, 2,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacements);
+            if (initial_step)
+              VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                       BoundaryShearTest<dim>(introspection.n_components, time), constraints,
+                                                       introspection.component_masks.displacements);
+            else
+              VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                       f_zero, constraints,
+                                                       introspection.component_masks.displacements);
 
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-    }
-  else if (test_case == TestCase::miehe_tension)
-    {
-      // For Miehe 2010 tension test
+            //      bottom part of crack
+            VectorTools::interpolate_boundary_values(dof_handler, 4,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacement[1]);
+          }
+        else if (test_case == TestCase::three_point_bending)
+          {
+            // fix y component of left and right bottom corners
+            typename DoFHandler<dim>::active_cell_iterator cell =
+              dof_handler.begin_active(), endc = dof_handler.end();
 
-      component_mask[0] = false;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               BoundaryParabelTension<dim>(time), boundary_values, component_mask);
-    }
-  else if (test_case == TestCase::miehe_shear)
-    {
-      // For Miehe 2010 shear test
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               BoundaryParabelShear<dim>(time), boundary_values, component_mask);
+            for (; cell != endc; ++cell)
+              {
+                if (cell->is_artificial())
+                  continue;
 
 
-      //      bottom part of crack
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 4,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
+                for (unsigned int v = 0;
+                     v < GeometryInfo<dim>::vertices_per_cell; ++v)
+                  {
+                    if (
+                      std::abs(cell->vertex(v)[1]) < 1e-10
+                      &&
+                      (
+                        std::abs(cell->vertex(v)[0]+4.0) < 1e-10
+                        || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
+                      ))
+                      {
+                        types::global_dof_index idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[1]);// y displacement
+                        constraints.add_line(idx);
+                        idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[0]);// x displacement
+                        if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
+                          constraints.add_line(idx);
+                      }
+                    else if (
+                      std::abs(cell->vertex(v)[0]) < 1e-10
+                      &&
+                      std::abs(cell->vertex(v)[1]-2.0) < 1e-10
+                    )
+                      {
+                        types::global_dof_index idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[0]);// x displacement
+                        //boundary_values[idx] = 0.0;
+                        idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[1]);// y displacement
+                        constraints.add_line(idx);
+                        if (initial_step)
+                          constraints.set_inhomogeneity(idx, -1.0*time);
+                      }
 
-    }
-  else if (test_case == TestCase::three_point_bending)
-    {
-      // fix y component of left and right bottom corners
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(), endc = dof_handler.end();
+                  }
+              }
 
-      for (; cell != endc; ++cell)
-        {
-          if (cell->is_artificial())
-            continue;
+          }
+        else
+          AssertThrow(false, ExcNotImplemented());
 
-          for (unsigned int v = 0;
-               v < GeometryInfo<dim>::vertices_per_cell; ++v)
-            {
-              if (
-                std::abs(cell->vertex(v)[1]) < 1e-10
-                &&
-                (
-                  std::abs(cell->vertex(v)[0]+4.0) < 1e-10
-                  || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
-                ))
-                {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  boundary_values[idx] = 0.0;
-                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
-                    boundary_values[idx] = 0.0;
-                  idx = cell->vertex_dof_index(v, 2);// 2= phase-field
-                  boundary_values[idx] = 1.0;
-                }
-              else if (
-                std::abs(cell->vertex(v)[0]) < 1e-10
-                &&
-                std::abs(cell->vertex(v)[1]-2.0) < 1e-10
-              )
-                {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  boundary_values[idx] = -1.0*time;
-                }
+      } // end 2d
+    else if (dim == 3)
+      {
+        for (unsigned int b=0; b<6; ++b)
+          VectorTools::interpolate_boundary_values (dof_handler,
+                                                    b,
+                                                    f_zero,
+                                                    constraints,
+                                                    introspection.component_masks.displacements);
+      }
 
-            }
-        }
-
-    }
-
-
-  std::pair<unsigned int, unsigned int> range;
-
-  if (direct_solver)
-    {
-      // this is not elegant, but works
-      std::vector<unsigned int> sub_blocks (dim+1,0);
-      sub_blocks[dim] = 1;
-      std::vector<types::global_dof_index> dofs_per_block (2);
-      DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, sub_blocks);
-      const unsigned int n_solid = dofs_per_block[0];
-      IndexSet is = solution.block(0).locally_owned_elements().get_view(0, n_solid);
-      Assert(is.is_contiguous(), ExcInternalError());
-      range.first = is.nth_index_in_set(0);
-      range.second = is.nth_index_in_set(is.n_elements()-1)+1;
-    }
-  else
-    {
-      range = solution.block(0).local_range();
-    }
-  for (typename std::map<unsigned int, double>::const_iterator i =
-         boundary_values.begin(); i != boundary_values.end(); ++i)
-    if (i->first >= range.first && i->first < range.second)
-      solution(i->first) = i->second;
-
-  solution.compress(VectorOperation::insert);
 
 }
 
-// This function applies boundary conditions
-// to the Newton iteration steps. For all variables that
-// have Dirichlet conditions on some (or all) parts
-// of the outer boundary, we apply zero-Dirichlet
-// conditions, now.
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::set_initial_bc (const double time)
+{
+  ConstraintMatrix constraints;
+  set_boundary_conditions(time, true, constraints);
+  constraints.close();
+  constraints.distribute(solution);
+
+//        for (typename std::map<unsigned int, double>::const_iterator i =
+//             boundary_values.begin(); i != boundary_values.end(); ++i)
+//          if (dof_handler.locally_owned_dofs().is_element(i->first))
+//            solution(i->first) = i->second;
+
+//        solution.compress(VectorOperation::insert);
+
+}
+
 template <int dim>
 void
 FracturePhaseFieldProblem<dim>::set_newton_bc ()
 {
-  std::vector<bool> component_mask(dim+1, false);
-  if (test_case == TestCase::sneddon_2d ||
-      test_case == TestCase::multiple_homo ||
-      test_case == TestCase::multiple_het)
-    {
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-
-
-      component_mask[0] = true; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-    }
-  else if (test_case == TestCase::miehe_tension)
-    {
-      // Miehe 2010 tension
-      component_mask[0] = false; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-    }
-  else if (test_case == TestCase::miehe_shear)
-    {
-      // Miehe 2010 shear
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      // bottom part of crack
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 4,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-
-    }
-  else if (test_case == TestCase::three_point_bending)
-    {
-      // fix y component of left and right bottom corners
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(), endc = dof_handler.end();
-
-      for (; cell != endc; ++cell)
-        {
-          if (cell->is_artificial())
-            continue;
-
-
-          for (unsigned int v = 0;
-               v < GeometryInfo<dim>::vertices_per_cell; ++v)
-            {
-              if (
-                std::abs(cell->vertex(v)[1]) < 1e-10
-                &&
-                (
-                  std::abs(cell->vertex(v)[0]+4.0) < 1e-10
-                  || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
-                ))
-                {
-
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  constraints_update.add_line(idx);
-                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
-                    constraints_update.add_line(idx);
-                  idx = cell->vertex_dof_index(v, 2);// 2=phase-field
-                  constraints_update.add_line(idx);
-                }
-              else if (
-                std::abs(cell->vertex(v)[0]) < 1e-10
-                &&
-                std::abs(cell->vertex(v)[1]-2.0) < 1e-10
-              )
-                {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  constraints_update.add_line(idx);
-                }
-            }
-        }
-
-    }
-
-
+    set_boundary_conditions(time, false, constraints_update);
 }
 
 
@@ -2638,9 +2772,9 @@ FracturePhaseFieldProblem<dim>::solve ()
     }
   else
     {
-      SolverControl solver_control(200, system_pde_residual.l2_norm() * 1e-8);
+      SolverControl solver_control(200, system_pde_residual.l2_norm() * linear_solver_tolerance);
 
-      SolverGMRES<LA::MPI::BlockVector> solver(solver_control);
+      SolverGMRES<LA::MPI::BlockVector> solver(solver_control, SolverGMRES<LA::MPI::BlockVector>::AdditionalData(30,true));
 
       BlockDiagonalPreconditioner<LA::MPI::PreconditionAMG,LA::MPI::PreconditionAMG>
       preconditioner(system_pde_matrix,
@@ -2655,11 +2789,15 @@ FracturePhaseFieldProblem<dim>::solve ()
     }
 }
 
-
+// Heister,Wheeler,Wick; 2015, CMAME: Combined Newton method: solving 
+// the nonlinear problem and treating the inequality constraint
+//
+// PAMM 2018 submission: extension of the newton active set solver 
+// with an active set cycle detection.
 template <int dim>
 double FracturePhaseFieldProblem<dim>::newton_active_set()
 {
-  pcout << "It.\t#A.Set\tResidual\tReduction\tLSrch\t#LinIts" << std::endl;
+  pcout << "It.\t#A.Set\t#CycDoF\tResidual\tReduction\tLSrch\t#LinIts" << std::endl;
 
   LA::MPI::BlockVector residual_relevant(partition_relevant);
 
@@ -2675,11 +2813,15 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
   double old_newton_residual = newton_residual;
   unsigned int newton_step = 1;
 
-  pcout << "0\t\t" << std::scientific << newton_residual << std::endl;
+  pcout << "0\t\t\t" << std::scientific << newton_residual << std::endl;
   std::cout.unsetf(std::ios_base::floatfield);
 
   active_set.clear();
   active_set.set_size(dof_handler.n_dofs());
+
+  // map global_dof_idx -> number of times it switched from inactive to active
+  // to detect cycles
+  std::map<unsigned int, unsigned int> cycle_counter;
 
   LA::MPI::BlockVector old_solution_relevant(partition_relevant);
   old_solution_relevant = old_solution;
@@ -2693,6 +2835,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       pcout << it << std::flush;
 
       IndexSet active_set_old = active_set;
+      unsigned int n_cycling_dofs = 0;
 
       {
         // compute new active set
@@ -2717,7 +2860,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
                 const unsigned int comp_i = fe.system_to_component_index(i).first;
-                if (comp_i != dim)
+                if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
 
                 const unsigned int idx = local_dof_indices[i];
@@ -2730,13 +2873,25 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
                     || constraints_hanging_nodes.is_constrained(idx))
                   continue;
 
-                double c= 1e+1 * E_modulus;
+		// TODO: should be dependent on phase-field variables, e.g., G_c
+		// and not E_modulus
+                double c= 1e2 * E_modulus / alpha_eps;
                 double massm = diag_mass_relevant(idx);
 
                 double gap = new_value - old_value;
+		double active_set_tolarance = 0.0; 
 
-                if ( residual_relevant(idx)/massm + c * (gap) <= 0)
+		// consider a DoF as cycling after this many inactive->active switches
+		const unsigned int n_cycling_threshold = 3;
+
+                if ( residual_relevant(idx)/massm + c * (gap) <= active_set_tolarance
+		     &&
+		     (cycle_counter[idx]<n_cycling_threshold)
+		)
                   continue;
+
+		if (cycle_counter[idx]>=n_cycling_threshold)
+		  ++n_cycling_dofs;
 
                 // now idx is in the active set
                 constraints_update.add_line(idx);
@@ -2749,19 +2904,28 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
               }
           }
         solution.compress(VectorOperation::insert);
+
         // we might have changed values of the solution, so fix the
         // hanging nodes (we ignore in the active set):
         constraints_hanging_nodes.distribute(solution);
 
         pcout << "\t"
               << Utilities::MPI::sum(owned_active_set_dofs, mpi_com)
+	      << "\t"
+              << Utilities::MPI::sum(n_cycling_dofs, mpi_com)
               << std::flush;
-
 
       }
 
+      { // cycle detection: increment a counter for each DoF that became active
+	IndexSet i_before = active_set_old;
+	i_before.subtract_set(active_set);
+	for (IndexSet::ElementIterator it = i_before.begin(); it != i_before.end(); ++it)
+	  ++(cycle_counter[*it]);
+      }
+
       set_newton_bc();
-      constraints_update.merge(constraints_hanging_nodes);
+      constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
       constraints_update.close();
 
       int is_my_set_changed = (active_set == active_set_old) ? 0 : 1;
@@ -2771,6 +2935,8 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       assemble_system();
       constraints_update.set_zero(system_pde_residual);
       unsigned int no_linear_iterations = solve();
+      if (it==1)
+        first_step_linear_it = no_linear_iterations;
 
       LA::MPI::BlockVector saved_solution = solution;
 
@@ -2802,7 +2968,9 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
           new_newton_residual = system_pde_residual.l2_norm();
 
 
-          if (new_newton_residual < newton_residual)
+          // accept the Newton update if we are below the old residual but also if
+          // we increase slightly but still stay below the tolerance
+          if (new_newton_residual < newton_residual || new_newton_residual < lower_bound_newton_residuum)
             break;
 
           solution = saved_solution;
@@ -2842,7 +3010,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
 
 }
 
-
+// Standard Newton used when we work with penalization
 template <int dim>
 double
 FracturePhaseFieldProblem<dim>::newton_iteration (
@@ -2970,7 +3138,7 @@ FracturePhaseFieldProblem<dim>::project_back_phase_field ()
         for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
           {
             const unsigned int comp_i = fe.system_to_component_index(i).first;
-            if (comp_i != dim)
+            if (comp_i != introspection.component_indices.phase_field)
               continue; // only look at phase field
 
             const unsigned int idx = local_dof_indices[i];
@@ -3014,14 +3182,16 @@ FracturePhaseFieldProblem<dim>::output_results () const
     std::vector<std::string> solution_names;
     solution_names.push_back("displacement_x");
     solution_names.push_back("displacement_y");
+    if (dim == 3)
+      solution_names.push_back("displacement_z");
     solution_names.push_back("phasefieldagain");
     std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(
-      dim+1, DataComponentInterpretation::component_is_scalar);
+      introspection.n_components, DataComponentInterpretation::component_is_scalar);
     data_out.add_data_vector(dof_handler, relevant_solution,
                              solution_names, data_component_interpretation);
   }
 
-  if (test_case == TestCase::sneddon_2d)
+  if (test_case == TestCase::sneddon)
     {
       data_out.add_data_vector(dof_handler, relevant_solution, exact_sol_sneddon);
     }
@@ -3032,7 +3202,6 @@ FracturePhaseFieldProblem<dim>::output_results () const
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
 
-      std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
       unsigned int cellindex = 0;
       for (; cell != endc; ++cell, ++cellindex)
         if (cell->is_locally_owned())
@@ -3086,13 +3255,15 @@ FracturePhaseFieldProblem<dim>::output_results () const
       std::string visit_master_filename = ("output/" + filename_basis
                                            + Utilities::int_to_string(refinement_cycle, 5) + ".visit");
       std::ofstream visit_master(visit_master_filename.c_str());
-      data_out.write_visit_record(visit_master, filenames);
+      DataOutBase::write_visit_record(visit_master, filenames);
 
       static std::vector<std::vector<std::string> > output_file_names_by_timestep;
       output_file_names_by_timestep.push_back(filenames);
       std::ofstream global_visit_master("output/solution.visit");
-      data_out.write_visit_record(global_visit_master,
+      DataOutBase::write_visit_record(global_visit_master,
                                   output_file_names_by_timestep);
+
+      pcout << "\tas " << visit_master_filename << std::endl;
     }
 }
 
@@ -3106,7 +3277,7 @@ FracturePhaseFieldProblem<dim>::compute_point_value (
   const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
   const Point<dim> &p, const unsigned int component) const
 {
-  double value = 0.0;
+  double value = -1.0e300;
   try
     {
       Vector<double> tmp_vector(dim);
@@ -3117,7 +3288,7 @@ FracturePhaseFieldProblem<dim>::compute_point_value (
     {
     }
 
-  return Utilities::MPI::sum(value, mpi_com);
+  return Utilities::MPI::max(value, mpi_com);
 }
 
 template <int dim>
@@ -3137,7 +3308,7 @@ FracturePhaseFieldProblem<dim>::compute_point_stress ()
   cell_point
     = GridTools::find_active_cell_around_point (StaticMappingQ1<dim>::mapping, dof_handler, p1);
 
-  double value = 0.0;
+  double value = -1e300;
   if (!cell_point.first->is_artificial())
     {
       const Quadrature<dim>
@@ -3364,6 +3535,72 @@ FracturePhaseFieldProblem<dim>::compute_cod (
 }
 
 
+
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::compute_tcv ()
+{
+  // compute the total crack volume = TCV = \int_\Omega u \cdot \nabla \phi
+
+  const QGauss<dim> quadrature (degree+2);
+  const unsigned int n_q_points = quadrature.size();
+
+  LA::MPI::BlockVector rel_solution(partition_relevant);
+  rel_solution = solution;
+
+  FEValues<dim> fe_values(fe, quadrature,
+                          update_values | update_quadrature_points | update_JxW_values
+                          | update_gradients);
+
+
+  typename DoFHandler<dim>::active_cell_iterator cell =
+    dof_handler.begin_active(), endc = dof_handler.end();
+
+  std::vector<Tensor<1,dim> > displacement_values(n_q_points);
+  std::vector<Tensor<1,dim> > phase_field_grads(n_q_points);
+
+  double local_integral = 0.0;
+
+  for (; cell != endc; ++cell)
+    if (cell->is_locally_owned())
+      {
+        fe_values.reinit(cell);
+        fe_values[introspection.extractors.displacement].get_function_values(rel_solution, displacement_values);
+        fe_values[introspection.extractors.phase_field].get_function_gradients(rel_solution, phase_field_grads);
+
+        for (unsigned int q = 0; q < n_q_points; ++q)
+          local_integral += displacement_values[q] * phase_field_grads[q] * fe_values.JxW(q);
+      }
+
+  double tcv = Utilities::MPI::sum(local_integral, mpi_com);
+
+  double ref;
+  {
+    double l0 = 1.0;
+    double E = 1.0;
+    double p = 1e-3;
+    double nu = 0.2;
+
+    if (dim==2)
+      ref = 2.0*p*l0*l0*(1.0-nu*nu)*numbers::PI/E; // = 0.00603186
+    else
+      ref = 16.0*p*l0*l0*l0*(1.0-nu*nu)/E/3.0; // = 0.00512
+    // other 3d formula, wrong?
+    // ref = 2.0*(1.0-nu)/numbers::PI * p * numbers::PI * 2.0 / 3.0; // = 0.001066666
+  }
+
+  pcout << "COD: TCV= " << tcv
+        << " ref= " << ref
+        << " Error= " << std::abs(tcv - ref)
+        << " eps= " << alpha_eps
+        << " dofs= " << dof_handler.n_dofs()
+        << " 1/h= " << 1.0/min_cell_diameter
+        << " 1st_LinIt= " << first_step_linear_it
+        << std::endl;
+}
+
+
+
 template <int dim>
 double
 FracturePhaseFieldProblem<dim>::compute_energy()
@@ -3388,11 +3625,9 @@ FracturePhaseFieldProblem<dim>::compute_energy()
   LA::MPI::BlockVector rel_solution(partition_relevant);
   rel_solution = solution;
 
-  std::vector<Vector<double> > solution_values(n_q_points,
-                                               Vector<double>(dim+1));
+  std::vector<double> phase_field_values(n_q_points);
 
-  std::vector<std::vector<Tensor<1, dim> > > solution_grads(
-    n_q_points, std::vector<Tensor<1, dim> >(dim+1));
+  std::vector<Tensor<2, dim> > displacement_grads(n_q_points);
 
   for (; cell != endc; ++cell)
     if (cell->is_locally_owned())
@@ -3410,18 +3645,17 @@ FracturePhaseFieldProblem<dim>::compute_energy()
                                       / (1.0 - 2 * poisson_ratio_nu);
           }
 
-        fe_values.get_function_values(rel_solution, solution_values);
-        fe_values.get_function_gradients(rel_solution, solution_grads);
+        fe_values[introspection.extractors.phase_field].get_function_values(rel_solution, phase_field_values);
+        fe_values[introspection.extractors.displacement].get_function_gradients(rel_solution, displacement_grads);
 
         for (unsigned int q = 0; q < n_q_points; ++q)
           {
-            const Tensor<2,dim> grad_u = Tensors
-                                         ::get_grad_u<dim> (q, solution_grads);
+            const Tensor<2,dim> grad_u = displacement_grads[q];
 
             const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
             const double tr_E = trace(E);
 
-            const double pf = solution_values[q](dim);
+            const double pf = phase_field_values[q];
 
             const double tr_e_2 = trace(E*E);
 
@@ -3580,7 +3814,9 @@ FracturePhaseFieldProblem<dim>::determine_mesh_dependent_parameters()
     min_cell_diameter = -Utilities::MPI::max(-min_cell_diameter, mpi_com);
   }
 
-  // for this test we want to use the h that will be used at the end
+
+  // for this test we want to use the largest h on the finest level that will
+  // be used at the end
   if (test_case == TestCase::miehe_tension
       || test_case == TestCase::miehe_shear
       || test_case == TestCase::multiple_homo
@@ -3605,7 +3841,7 @@ FracturePhaseFieldProblem<dim>::determine_mesh_dependent_parameters()
   // old relations (see below why now others are used!)
 
   bool h_and_eps_small_o = false;
-  if (h_and_eps_small_o && test_case == TestCase::sneddon_2d)
+  if (h_and_eps_small_o && test_case == TestCase::sneddon)
     {
       // Bourdin 1999 Image Segmentation gives ideas for
       // choice of parameters w.r.t. h
@@ -3647,8 +3883,11 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
 
   if (refinement_strategy == RefinementStrategy::fixed_preref_sneddon)
     {
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(), endc = dof_handler.end();
+      Assert(false, ExcNotImplemented()); // TODO, needs to be adapted to new setup for sneddon
+      if (dim == 2)
+        {
+          typename DoFHandler<dim>::active_cell_iterator cell =
+            dof_handler.begin_active(), endc = dof_handler.end();
 
       for (; cell != endc; ++cell)
         if (cell->is_locally_owned())
@@ -3665,11 +3904,34 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
                     break;
                   }
               }
+            }
+        }
+      else if (dim == 3)
+        {
+          typename DoFHandler<dim>::active_cell_iterator cell =
+            dof_handler.begin_active(), endc = dof_handler.end();
 
-          }
+          for (; cell != endc; ++cell)
+            if (cell->is_locally_owned())
+              {
+                for (unsigned int vertex=0; vertex < GeometryInfo<dim>::vertices_per_cell; ++vertex)
+                  {
+                    Tensor<1,dim> cell_vertex = (cell->vertex(vertex));
+                    if (cell_vertex[0] <= 6.0 && cell_vertex[0] >= 4.0 &&
+                        cell_vertex[2] <= 6.0 && cell_vertex[2] >= 4.0 &&
+                        cell_vertex[1] <= 5.15 && cell_vertex[1] >= 4.85)
+                      {
+                        cell->set_refine_flag();
+                        break;
+                      }
+                  }
+
+              }
+        } // end 3d
     }    // end Sneddon
   else if (refinement_strategy == RefinementStrategy::fixed_preref_miehe_tension)
     {
+      Assert(dim==2, ExcNotImplemented());
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
 
@@ -3690,9 +3952,11 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
               }
 
           }
-    }    // end Miehe tension
+    }    // end tension
   else if (refinement_strategy == RefinementStrategy::fixed_preref_miehe_shear)
     {
+      Assert(dim==2, ExcNotImplemented());
+
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
 
@@ -3713,7 +3977,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
               }
 
           }
-    }    // end Miehe shear
+    }    // end single edge notched shear
   else if (refinement_strategy == RefinementStrategy::phase_field_ref)
     {
       // refine if phase field < constant
@@ -3728,7 +3992,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
                 const unsigned int comp_i = fe.system_to_component_index(i).first;
-                if (comp_i != dim)
+                if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
                 if (relevant_solution(local_dof_indices[i])
                     < value_phase_field_for_refinement )
@@ -3749,7 +4013,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       for (; cell != endc; ++cell)
         if (cell->is_locally_owned())
           {
-            // Miehe three point top boundary refinement
+            // Three point top boundary refinement
             for (unsigned int vertex = 0;
                  vertex < GeometryInfo<dim>::vertices_per_cell; ++vertex)
               {
@@ -3767,7 +4031,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
                 const unsigned int comp_i = fe.system_to_component_index(i).first;
-                if (comp_i != dim)
+                if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
                 if (relevant_solution(local_dof_indices[i])
                     < value_phase_field_for_refinement )
@@ -3801,7 +4065,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
               for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
                 {
                   const unsigned int comp_i = fe.system_to_component_index(i).first;
-                  if (comp_i != dim)
+                  if (comp_i != introspection.component_indices.phase_field)
                     continue; // only look at phase field
                   if (relevant_solution(local_dof_indices[i])
                       < value_phase_field_for_refinement )
@@ -3851,15 +4115,42 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
 
 
   // limit level
-  if (test_case != TestCase::sneddon_2d)
+  if (test_case != TestCase::sneddon)
     {
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
       for (; cell != endc; ++cell)
         if (cell->is_locally_owned()
-            && cell->level() == static_cast<int>(n_global_pre_refine+n_refinement_cycles+n_local_pre_refine))
+            && cell->level() >= static_cast<int>(n_global_pre_refine+n_refinement_cycles+n_local_pre_refine))
           cell->clear_refine_flag();
     }
+
+  // force h < f(eps) inside crack
+  {
+    typename DoFHandler<dim>::active_cell_iterator cell =
+      dof_handler.begin_active(), endc = dof_handler.end();
+    std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+
+    for (; cell != endc; ++cell)
+      if (cell->is_locally_owned()
+          && cell->diameter() > force_h_func.value(Point<1>(alpha_eps)))
+        {
+          cell->get_dof_indices(local_dof_indices);
+          for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
+            {
+              const unsigned int comp_i = fe.system_to_component_index(i).first;
+              if (comp_i != introspection.component_indices.phase_field)
+                continue; // only look at phase field
+              if (relevant_solution(local_dof_indices[i])
+                  < value_phase_field_for_refinement )
+                {
+                  cell->clear_coarsen_flag();
+                  cell->set_refine_flag();
+                  break;
+                }
+            }
+        }
+  }
 
   // check if we are doing anything
   {
@@ -3921,34 +4212,58 @@ FracturePhaseFieldProblem<dim>::run ()
 
   for (unsigned int i = 0; i < n_local_pre_refine; ++i)
     {
-      ConstraintMatrix constraints;
-      constraints.close();
+      determine_mesh_dependent_parameters();
 
-      if (test_case == TestCase::sneddon_2d)
+      if (test_case == TestCase::sneddon)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesSneddon<dim>(min_cell_diameter), solution);
+                                   InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
 
         }
       else if (test_case == TestCase::multiple_homo)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesMultipleHomo<dim>(min_cell_diameter), solution);
+                                   InitialValuesMultipleHomo<dim>(introspection.n_components, min_cell_diameter), solution);
 
         }
       else if (test_case == TestCase::multiple_het)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesMultipleHet<dim>(min_cell_diameter), solution);
+                                   InitialValuesMultipleHet<dim>(introspection.n_components, min_cell_diameter), solution);
 
         }
       else
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesMiehe<dim>(min_cell_diameter), solution);
+                                   InitialValuesTensionOrShear<dim>(introspection.n_components, min_cell_diameter), solution);
         }
       refine_mesh();
 
+      if (!refine_mesh())
+        AssertThrow(false, ExcMessage("error in prerefine, check initial conditions!"));
+
+
+    }
+
+  // if we want to do stationary convergence tests but we currently violate h<f(eps), refine our mesh
+  // Note that we do not interpolate using min_cell_diameter, because that would create meshes with extreme grading
+  if (test_case == TestCase::sneddon)
+  while (n_refinement_cycles>0 && min_cell_diameter>force_h_func.value(Point<1>(alpha_eps)))
+    {
+      determine_mesh_dependent_parameters();
+      double h = 2.0*min_cell_diameter;
+
+      if (test_case == TestCase::sneddon)
+        {
+          VectorTools::interpolate(dof_handler,
+                                   InitialValuesSneddon<dim>(introspection.n_components, h), solution);
+        }
+      else AssertThrow(false, ExcNotImplemented());
+
+      if (!refine_mesh())
+        AssertThrow(false, ExcMessage("error in prerefine, check initial conditions!"));
+
+      --n_refinement_cycles;
     }
 
   if (n_local_pre_refine==0)
@@ -3972,31 +4287,35 @@ FracturePhaseFieldProblem<dim>::run ()
 
 
   {
-    ConstraintMatrix constraints;
-    constraints.close();
-
-    if (test_case == TestCase::sneddon_2d)
+    if (test_case == TestCase::sneddon)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesSneddon<dim>(min_cell_diameter), solution);
+                                 InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
       }
     else if (test_case == TestCase::multiple_homo)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesMultipleHomo<dim>(min_cell_diameter), solution);
+                                 InitialValuesMultipleHomo<dim>(introspection.n_components, min_cell_diameter), solution);
 
       }
     else if (test_case == TestCase::multiple_het)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesMultipleHet<dim>(min_cell_diameter), solution);
+                                 InitialValuesMultipleHet<dim>(introspection.n_components, min_cell_diameter), solution);
 
       }
-    else
+    else if (test_case == TestCase::miehe_shear)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesMiehe<dim>(min_cell_diameter), solution);
+                                 InitialValuesTensionOrShear<dim>(introspection.n_components, min_cell_diameter), solution);
       }
+    else if (test_case == TestCase::three_point_bending)
+      {
+        // do nothing
+      }
+    else
+      AssertThrow(false, ExcNotImplemented());
+
     output_results();
   }
 
@@ -4060,6 +4379,14 @@ redo_step:
                 // might not converge. To not abort the program we catch the
                 // exception and retry with a smaller step.
                 use_old_timestep_pf = false;
+
+		// TODO: check if Sneddon 2D and 3D still converge
+		// Preliminary tests suggest that convergence 
+		// is better with old_timestep rather than pf_extra.
+		// For Sneddon this is plausible since the solution 
+		// does almost not vary in time in this test case.
+		//if (test_case == TestCase::sneddon)
+		//  use_old_timestep_pf = true;
                 try
                   {
                     newton_reduction = newton_active_set();
@@ -4145,14 +4472,15 @@ redo_step:
             while (true);
 
           }
-        else throw ExcNotImplemented();
+        else
+          AssertThrow(false, ExcNotImplemented());
 
         // Normalize phase-field function between 0 and 1
-        // TW: I think this function is not really needed any more
+        // TODO: this function is not really needed any more
         project_back_phase_field();
         constraints_hanging_nodes.distribute(solution);
 
-        if (test_case != TestCase::sneddon_2d)
+        if (test_case != TestCase::sneddon)
           {
             bool changed = refine_mesh();
             if (changed)
@@ -4174,7 +4502,7 @@ redo_step:
           pcout << std::endl;
           compute_energy();
 
-          if (test_case == TestCase::sneddon_2d ||
+          if (test_case == TestCase::sneddon ||
               test_case == TestCase::multiple_homo ||
               test_case == TestCase::multiple_het)
             {
@@ -4202,14 +4530,18 @@ redo_step:
 
         // Abbruchkriterium time step algorithm
         finishing_timestep_loop = residual.linfty_norm();
-        if (test_case == TestCase::sneddon_2d)
+        if (test_case == TestCase::sneddon)
           pcout << "Timestep difference linfty: " << finishing_timestep_loop << std::endl;
 
         ++timestep_number;
 
-        if (test_case == TestCase::sneddon_2d && finishing_timestep_loop < 1.0e-5)
+        if (test_case == TestCase::sneddon && finishing_timestep_loop < 1.0e-7)
           {
-            //compute_cod_array();
+            if (test_case == TestCase::sneddon)
+              {
+                //compute_cod_array (); // very expensive
+                compute_tcv ();
+              }
             compute_functional_values();
 
             // Now we compare phi to our reference function
@@ -4221,14 +4553,21 @@ redo_step:
                 partition_relevant);
               rel_solution = solution;
 
-              ComponentSelectFunction<dim> value_select (dim, dim+1);
-              VectorTools::integrate_difference (dof_handler,
-                                                 rel_solution,
-                                                 exact,
-                                                 error,
-                                                 QGauss<dim>(fe.degree+2),
-                                                 VectorTools::L2_norm,
-                                                 &value_select);
+              if (test_case == TestCase::sneddon)
+                {
+                  ExactPhiSneddon<dim> exact(alpha_eps);
+                  ComponentSelectFunction<dim> value_select (dim, dim+1); // phi
+                  VectorTools::integrate_difference (dof_handler,
+                                                     rel_solution,
+                                                     exact,
+                                                     error,
+                                                     QGauss<dim>(fe.degree+2),
+                                                     VectorTools::L2_norm,
+                                                     &value_select);
+                }
+              else
+                AssertThrow(false, ExcNotImplemented());
+
               const double local_error = error.l2_norm();
               const double L2_error =  std::sqrt( Utilities::MPI::sum(local_error * local_error, mpi_com));
               pcout << "phi_L2_error: " << L2_error << " h: " << min_cell_diameter << std::endl;
@@ -4247,26 +4586,26 @@ redo_step:
             refine_mesh();
             solution = 0;
             ++refinement_cycle;
-            if (test_case == TestCase::sneddon_2d)
+            if (test_case == TestCase::sneddon)
               {
                 VectorTools::interpolate(dof_handler,
-                                         InitialValuesSneddon<dim>(min_cell_diameter), solution);
+                                         InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
               }
             else if (test_case == TestCase::multiple_homo)
               {
                 VectorTools::interpolate(dof_handler,
-                                         InitialValuesMultipleHomo<dim>(min_cell_diameter), solution);
+                                         InitialValuesMultipleHomo<dim>(introspection.n_components, min_cell_diameter), solution);
 
               }
             else if (test_case == TestCase::multiple_het)
               {
                 VectorTools::interpolate(dof_handler,
-                                         InitialValuesMultipleHet<dim>(min_cell_diameter), solution);
+                                         InitialValuesMultipleHet<dim>(introspection.n_components, min_cell_diameter), solution);
 
               }
             else
               VectorTools::interpolate(dof_handler,
-                                       InitialValuesMiehe<dim>(min_cell_diameter), solution);
+                                       InitialValuesTensionOrShear<dim>(introspection.n_components, min_cell_diameter), solution);
 
           }
 
@@ -4282,6 +4621,8 @@ redo_step:
 
   pcout << std::resetiosflags(std::ios::floatfield) << std::fixed;
   std::cout.precision(2);
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   Utilities::System::MemoryStats stats;
   Utilities::System::get_memory_stats(stats);
@@ -4313,8 +4654,7 @@ main (
       FracturePhaseFieldProblem<2>::declare_parameters(prm);
       if (argc>1)
         {
-          if (!prm.read_input(argv[1], true))
-            AssertThrow(false, ExcMessage("could not read .prm!"));
+          prm.parse_input(argv[1]);
         }
       else
         {
@@ -4326,9 +4666,26 @@ main (
           return 0;
         }
 
+      prm.enter_subsection("Global parameters");
+      unsigned int problem_dimension = prm.get_integer("Dimension");
+      prm.leave_subsection();
 
-      FracturePhaseFieldProblem<2> fracture_problem(1, prm);
-      fracture_problem.run();
+      if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+        std::cout << "Problem dimension: " << problem_dimension << std::endl;
+
+      if (problem_dimension == 2)
+        {
+          FracturePhaseFieldProblem<2> fracture_problem(prm);
+          fracture_problem.run();
+        }
+      else if (problem_dimension == 3)
+        {
+          FracturePhaseFieldProblem<3> fracture_problem(prm);
+          fracture_problem.run();
+        }
+      else AssertThrow(false, ExcNotImplemented());
+
+
     }
   catch (std::exception &exc)
     {

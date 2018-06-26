@@ -1,0 +1,40 @@
+subsection Global parameters
+  set Global pre-refinement steps	= 3
+  set Local pre-refinement steps  	= 0#5
+  set Max No of timesteps  	  	= 1000
+  set Adaptive refinement cycles        = 17
+  set Timestep size			= 1.0 
+
+  set outer solver                      = active set
+  set test case                         = sneddon
+  set ref strategy                      = mix#phase field
+ 
+  set value phase field for refinement  = 0.3
+  set Mesh = rect -40 -40 40 40
+end
+
+subsection Problem dependent parameters
+  set K reg = 0
+  set Eps reg = 2.0*h
+  set force h smaller than = eps/2.0
+
+  # must be 0.0 in active set:
+  set Gamma penalization		= 0.0
+
+  # Material and problem-rhs parameters
+  set Pressure				= 1.0e-3
+  set Fracture toughness G_c		= 1.0
+  set Density solid	 		= 1.0
+  set Poisson ratio nu			= 0.2
+  set E modulus	    			= 1.0
+end 
+
+subsection Solver parameters
+  set Use Direct Inner Solver              = false
+ 
+  set Newton lower bound     		   = 1.0e-7
+  set Newton maximum steps		   = 60
+  set Decompose stress in rhs		   = 0.0
+  set Decompose stress in matrix	   = 0.0
+  set Line search maximum steps = 50
+end
