@@ -23,7 +23,8 @@ A preprint is available here: http://www.math.clemson.edu/~heister/preprints/HeW
 
 > T. Heister, T. Wick:
 > Parallel solution, adaptivity, computational convergence, and open-source code of 2d and 3d pressurized phase-field fracture problems
-> ArXiv preprint (coming soon)
+> ArXiv preprint
+> https://arxiv.org/abs/1806.09924
 
 # How to run
 
