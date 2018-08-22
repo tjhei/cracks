@@ -18,6 +18,18 @@ pipeline {
 	  sh 'cmake .'
 	  }
     }
+    stage("indent") {
+      steps {
+      	sh 'make indent'
+	sh 'git diff > changes.diff'
+        archiveArtifacts artifacts: 'changes.diff', fingerprint: true
+        sh '''
+          git diff --exit-code || \
+          { echo "Please check indentation!"; exit 1; }
+          '''
+	  }
+    }
+
     stage("build") {
       steps {
       	sh 'make -j 4'                
