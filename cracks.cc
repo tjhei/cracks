@@ -74,19 +74,19 @@ using namespace dealii;
 // taken from step-42
 class BitmapFile
 {
-public:
-  BitmapFile(const std::string &name);
+  public:
+    BitmapFile(const std::string &name);
 
-  double
-  get_value(const double x, const double y) const;
+    double
+    get_value(const double x, const double y) const;
 
-private:
-  std::vector<double> image_data;
-  double hx, hy;
-  int nx, ny;
+  private:
+    std::vector<double> image_data;
+    double hx, hy;
+    int nx, ny;
 
-  double
-  get_pixel_value(const int i, const int j) const;
+    double
+    get_pixel_value(const int i, const int j) const;
 };
 
 // The constructor of this class reads in the data that describes
@@ -166,26 +166,26 @@ BitmapFile::get_value(const double x,
 template <int dim>
 class BitmapFunction : public Function<dim>
 {
-public:
-  BitmapFunction(const std::string &filename,
-                 double x1_, double x2_, double y1_, double y2_, double minvalue_, double maxvalue_)
-    : Function<dim>(1),
-      f(filename), x1(x1_), x2(x2_), y1(y1_), y2(y2_), minvalue(minvalue_), maxvalue(maxvalue_)
-  {}
+  public:
+    BitmapFunction(const std::string &filename,
+                   double x1_, double x2_, double y1_, double y2_, double minvalue_, double maxvalue_)
+      : Function<dim>(1),
+        f(filename), x1(x1_), x2(x2_), y1(y1_), y2(y2_), minvalue(minvalue_), maxvalue(maxvalue_)
+    {}
 
-  virtual
-  double value (const Point<dim> &p,
-                const unsigned int /*component*/) const
-  {
-    Assert(dim==2, ExcNotImplemented());
-    double x = (p(0)-x1)/(x2-x1);
-    double y = (p(1)-y1)/(y2-y1);
-    return minvalue + f.get_value(x,y)*(maxvalue-minvalue);
-  }
-private:
-  BitmapFile f;
-  double x1,x2,y1,y2;
-  double minvalue, maxvalue;
+    virtual
+    double value (const Point<dim> &p,
+                  const unsigned int /*component*/) const
+    {
+      Assert(dim==2, ExcNotImplemented());
+      double x = (p(0)-x1)/(x2-x1);
+      double y = (p(1)-y1)/(y2-y1);
+      return minvalue + f.get_value(x,y)*(maxvalue-minvalue);
+    }
+  private:
+    BitmapFile f;
+    double x1,x2,y1,y2;
+    double minvalue, maxvalue;
 };
 
 
@@ -269,25 +269,25 @@ namespace Tensors
 template <int dim>
 class InitialValuesSneddon : public Function<dim>
 {
-public:
-  InitialValuesSneddon (
-    const double min_cell_diameter)
-    :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+  public:
+    InitialValuesSneddon (
+      const double min_cell_diameter)
+      :
+      Function<dim>(dim+1)
+    {
+      _min_cell_diameter = min_cell_diameter;
+    }
 
-  virtual double
-  value (
-    const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double
+    value (
+      const Point<dim> &p, const unsigned int component = 0) const;
 
-  virtual void
-  vector_value (
-    const Point<dim> &p, Vector<double> &value) const;
+    virtual void
+    vector_value (
+      const Point<dim> &p, Vector<double> &value) const;
 
-private:
-  double _min_cell_diameter;
+  private:
+    double _min_cell_diameter;
 
 };
 
@@ -327,77 +327,77 @@ InitialValuesSneddon<dim>::vector_value (
 template <int dim>
 class ExactPhiSneddon : public Function<dim>
 {
-public:
-  ExactPhiSneddon (const double eps_)
-    :
-    Function<dim>(dim+1),
-    eps(eps_)
-  {
-  }
+  public:
+    ExactPhiSneddon (const double eps_)
+      :
+      Function<dim>(dim+1),
+      eps(eps_)
+    {
+    }
 
-  virtual double
-  value (
-    const Point<dim> &p, const unsigned int component = 0) const
-  {
-    double dist = 0.0;
-    Point<dim> left(1.8, 2.0);
-    Point<dim> right(2.2, 2.0);
+    virtual double
+    value (
+      const Point<dim> &p, const unsigned int component = 0) const
+    {
+      double dist = 0.0;
+      Point<dim> left(1.8, 2.0);
+      Point<dim> right(2.2, 2.0);
 
-    if (p(0)<1.8)
-      dist = left.distance(p);
-    else if (p(0)>2.2)
-      dist = right.distance(p);
-    else
-      dist=std::abs(p(1)-2.0);
-    return 1.0 - exp(-dist/eps);
-  }
+      if (p(0)<1.8)
+        dist = left.distance(p);
+      else if (p(0)>2.2)
+        dist = right.distance(p);
+      else
+        dist=std::abs(p(1)-2.0);
+      return 1.0 - exp(-dist/eps);
+    }
 
-private:
-  double eps;
+  private:
+    double eps;
 };
 
 
 template <int dim>
 class SneddonExactPostProc : public DataPostprocessor<dim>
 {
-public:
-  SneddonExactPostProc (const double eps)
-    : exact(eps)
-  {}
+  public:
+    SneddonExactPostProc (const double eps)
+      : exact(eps)
+    {}
 
-  void compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
-                                          const std::vector<std::vector<Tensor<1,dim> > > &duh,
-                                          const std::vector<std::vector<Tensor<2,dim> > > &dduh,
-                                          const std::vector<Point<dim> >                  &normals,
-                                          const std::vector<Point<dim> >                   &evaluation_points,
-                                          std::vector<Vector<double> >                    &computed_quantities) const
+    void compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
+                                            const std::vector<std::vector<Tensor<1,dim> > > &duh,
+                                            const std::vector<std::vector<Tensor<2,dim> > > &dduh,
+                                            const std::vector<Point<dim> >                  &normals,
+                                            const std::vector<Point<dim> >                   &evaluation_points,
+                                            std::vector<Vector<double> >                    &computed_quantities) const
 
-  {
-    for (unsigned int i=0; i<computed_quantities.size(); ++i)
-      computed_quantities[i][0] = exact.value(evaluation_points[i]);
-  }
+    {
+      for (unsigned int i=0; i<computed_quantities.size(); ++i)
+        computed_quantities[i][0] = exact.value(evaluation_points[i]);
+    }
 
-  virtual std::vector<std::string> get_names () const
-  {
-    std::vector<std::string> r;
-    r.push_back("exact_phi");
-    return r;
-  }
+    virtual std::vector<std::string> get_names () const
+    {
+      std::vector<std::string> r;
+      r.push_back("exact_phi");
+      return r;
+    }
 
-  virtual
-  std::vector<DataComponentInterpretation::DataComponentInterpretation>
-  get_data_component_interpretation () const
-  {
-    std::vector<DataComponentInterpretation::DataComponentInterpretation> r;
-    r.push_back(DataComponentInterpretation::component_is_scalar);
-    return r;
-  }
-  virtual UpdateFlags get_needed_update_flags () const
-  {
-    return  update_q_points;
-  }
-private:
-  ExactPhiSneddon<dim> exact;
+    virtual
+    std::vector<DataComponentInterpretation::DataComponentInterpretation>
+    get_data_component_interpretation () const
+    {
+      std::vector<DataComponentInterpretation::DataComponentInterpretation> r;
+      r.push_back(DataComponentInterpretation::component_is_scalar);
+      return r;
+    }
+    virtual UpdateFlags get_needed_update_flags () const
+    {
+      return  update_q_points;
+    }
+  private:
+    ExactPhiSneddon<dim> exact;
 };
 
 
@@ -406,25 +406,25 @@ private:
 template <int dim>
 class InitialValuesMultipleHomo : public Function<dim>
 {
-public:
-  InitialValuesMultipleHomo (
-    const double min_cell_diameter)
-    :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+  public:
+    InitialValuesMultipleHomo (
+      const double min_cell_diameter)
+      :
+      Function<dim>(dim+1)
+    {
+      _min_cell_diameter = min_cell_diameter;
+    }
 
-  virtual double
-  value (
-    const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double
+    value (
+      const Point<dim> &p, const unsigned int component = 0) const;
 
-  virtual void
-  vector_value (
-    const Point<dim> &p, Vector<double> &value) const;
+    virtual void
+    vector_value (
+      const Point<dim> &p, Vector<double> &value) const;
 
-private:
-  double _min_cell_diameter;
+  private:
+    double _min_cell_diameter;
 
 };
 
@@ -489,25 +489,25 @@ InitialValuesMultipleHomo<dim>::vector_value (
 template <int dim>
 class InitialValuesMultipleHet : public Function<dim>
 {
-public:
-  InitialValuesMultipleHet (
-    const double min_cell_diameter)
-    :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+  public:
+    InitialValuesMultipleHet (
+      const double min_cell_diameter)
+      :
+      Function<dim>(dim+1)
+    {
+      _min_cell_diameter = min_cell_diameter;
+    }
 
-  virtual double
-  value (
-    const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double
+    value (
+      const Point<dim> &p, const unsigned int component = 0) const;
 
-  virtual void
-  vector_value (
-    const Point<dim> &p, Vector<double> &value) const;
+    virtual void
+    vector_value (
+      const Point<dim> &p, Vector<double> &value) const;
 
-private:
-  double _min_cell_diameter;
+  private:
+    double _min_cell_diameter;
 
 };
 
@@ -567,25 +567,25 @@ InitialValuesMultipleHet<dim>::vector_value (
 template <int dim>
 class InitialValuesMiehe : public Function<dim>
 {
-public:
-  InitialValuesMiehe (
-    const double min_cell_diameter)
-    :
-    Function<dim>(dim+1)
-  {
-    _min_cell_diameter = min_cell_diameter;
-  }
+  public:
+    InitialValuesMiehe (
+      const double min_cell_diameter)
+      :
+      Function<dim>(dim+1)
+    {
+      _min_cell_diameter = min_cell_diameter;
+    }
 
-  virtual double
-  value (
-    const Point<dim> &p, const unsigned int component = 0) const;
+    virtual double
+    value (
+      const Point<dim> &p, const unsigned int component = 0) const;
 
-  virtual void
-  vector_value (
-    const Point<dim> &p, Vector<double> &value) const;
+    virtual void
+    vector_value (
+      const Point<dim> &p, Vector<double> &value) const;
 
-private:
-  double _min_cell_diameter;
+  private:
+    double _min_cell_diameter;
 
 };
 
@@ -621,21 +621,21 @@ InitialValuesMiehe<dim>::vector_value (
 template <int dim>
 class BoundaryParabelTension : public Function<dim>
 {
-public:
-  BoundaryParabelTension (const double time)
-    : Function<dim>(dim+1)
-  {
-    _time = time;
-  }
+  public:
+    BoundaryParabelTension (const double time)
+      : Function<dim>(dim+1)
+    {
+      _time = time;
+    }
 
-  virtual double value (const Point<dim>   &p,
-                        const unsigned int  component = 0) const;
+    virtual double value (const Point<dim>   &p,
+                          const unsigned int  component = 0) const;
 
-  virtual void vector_value (const Point<dim> &p,
-                             Vector<double>   &value) const;
+    virtual void vector_value (const Point<dim> &p,
+                               Vector<double>   &value) const;
 
-private:
-  double _time;
+  private:
+    double _time;
 
 };
 
@@ -685,21 +685,21 @@ BoundaryParabelTension<dim>::vector_value (const Point<dim> &p,
 template <int dim>
 class BoundaryParabelShear : public Function<dim>
 {
-public:
-  BoundaryParabelShear (const double time)
-    : Function<dim>(dim+1)
-  {
-    _time = time;
-  }
+  public:
+    BoundaryParabelShear (const double time)
+      : Function<dim>(dim+1)
+    {
+      _time = time;
+    }
 
-  virtual double value (const Point<dim>   &p,
-                        const unsigned int  component = 0) const;
+    virtual double value (const Point<dim>   &p,
+                          const unsigned int  component = 0) const;
 
-  virtual void vector_value (const Point<dim> &p,
-                             Vector<double>   &value) const;
+    virtual void vector_value (const Point<dim> &p,
+                               Vector<double>   &value) const;
 
-private:
-  double _time;
+  private:
+    double _time;
 
 };
 
@@ -743,21 +743,21 @@ BoundaryParabelShear<dim>::vector_value (const Point<dim> &p,
 template <int dim>
 class BoundaryThreePoint : public Function<dim>
 {
-public:
-  BoundaryThreePoint (const double time)
-    : Function<dim>(dim+1)
-  {
-    _time = time;
-  }
+  public:
+    BoundaryThreePoint (const double time)
+      : Function<dim>(dim+1)
+    {
+      _time = time;
+    }
 
-  virtual double value (const Point<dim>   &p,
-                        const unsigned int  component = 0) const;
+    virtual double value (const Point<dim>   &p,
+                          const unsigned int  component = 0) const;
 
-  virtual void vector_value (const Point<dim> &p,
-                             Vector<double>   &value) const;
+    virtual void vector_value (const Point<dim> &p,
+                               Vector<double>   &value) const;
 
-private:
-  double _time;
+  private:
+    double _time;
 
 };
 
@@ -799,171 +799,171 @@ BoundaryThreePoint<dim>::vector_value (const Point<dim> &p,
 template <int dim>
 class FracturePhaseFieldProblem
 {
-public:
+  public:
 
-  FracturePhaseFieldProblem (
-    const unsigned int degree, ParameterHandler &);
-  void
-  run ();
-  static void
-  declare_parameters (ParameterHandler &prm);
+    FracturePhaseFieldProblem (
+      const unsigned int degree, ParameterHandler &);
+    void
+    run ();
+    static void
+    declare_parameters (ParameterHandler &prm);
 
-private:
+  private:
 
-  void
-  set_runtime_parameters ();
-  void
-  determine_mesh_dependent_parameters();
-  void
-  setup_system ();
-  void
-  assemble_system (bool residual_only=false);
-  void
-  assemble_nl_residual ();
+    void
+    set_runtime_parameters ();
+    void
+    determine_mesh_dependent_parameters();
+    void
+    setup_system ();
+    void
+    assemble_system (bool residual_only=false);
+    void
+    assemble_nl_residual ();
 
-  void assemble_diag_mass_matrix();
+    void assemble_diag_mass_matrix();
 
-  void
-  set_initial_bc (
-    const double time);
-  void
-  set_newton_bc ();
+    void
+    set_initial_bc (
+      const double time);
+    void
+    set_newton_bc ();
 
-  unsigned int
-  solve ();
+    unsigned int
+    solve ();
 
-  double newton_active_set();
+    double newton_active_set();
 
-  double
-  newton_iteration (
-    const double time);
+    double
+    newton_iteration (
+      const double time);
 
-  double
-  compute_point_value (
-    const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
-    const Point<dim> &p, const unsigned int component) const;
+    double
+    compute_point_value (
+      const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
+      const Point<dim> &p, const unsigned int component) const;
 
-  void
-  compute_point_stress ();
+    void
+    compute_point_stress ();
 
-  void
-  output_results () const;
+    void
+    output_results () const;
 
-  void
-  compute_functional_values ();
+    void
+    compute_functional_values ();
 
-  void
-  compute_load();
+    void
+    compute_load();
 
-  void compute_cod_array ();
+    void compute_cod_array ();
 
-  double
-  compute_cod (
-    const double eval_line);
+    double
+    compute_cod (
+      const double eval_line);
 
-  double compute_energy();
+    double compute_energy();
 
-  bool
-  refine_mesh ();
-  void
-  project_back_phase_field ();
+    bool
+    refine_mesh ();
+    void
+    project_back_phase_field ();
 
-  MPI_Comm mpi_com;
+    MPI_Comm mpi_com;
 
-  const unsigned int degree;
-  ParameterHandler &prm;
+    const unsigned int degree;
+    ParameterHandler &prm;
 
-  parallel::distributed::Triangulation<dim> triangulation;
+    parallel::distributed::Triangulation<dim> triangulation;
 
-  FESystem<dim> fe;
-  DoFHandler<dim> dof_handler;
-  ConstraintMatrix constraints_update;
-  ConstraintMatrix constraints_hanging_nodes;
+    FESystem<dim> fe;
+    DoFHandler<dim> dof_handler;
+    ConstraintMatrix constraints_update;
+    ConstraintMatrix constraints_hanging_nodes;
 
-  LA::MPI::BlockSparseMatrix system_pde_matrix;
-  LA::MPI::BlockVector solution, newton_update,
-  old_solution, old_old_solution, system_pde_residual;
-  LA::MPI::BlockVector system_total_residual;
+    LA::MPI::BlockSparseMatrix system_pde_matrix;
+    LA::MPI::BlockVector solution, newton_update,
+    old_solution, old_old_solution, system_pde_residual;
+    LA::MPI::BlockVector system_total_residual;
 
-  LA::MPI::BlockVector diag_mass, diag_mass_relevant;
+    LA::MPI::BlockVector diag_mass, diag_mass_relevant;
 
-  ConditionalOStream pcout;
-  TimerOutput timer;
+    ConditionalOStream pcout;
+    TimerOutput timer;
 
-  IndexSet active_set;
+    IndexSet active_set;
 
-  Function<dim> *func_emodulus;
+    Function<dim> *func_emodulus;
 
-  std::vector<IndexSet> partition;
-  std::vector<IndexSet> partition_relevant;
+    std::vector<IndexSet> partition;
+    std::vector<IndexSet> partition_relevant;
 
-  std::vector<std::vector<bool> > constant_modes;
+    std::vector<std::vector<bool> > constant_modes;
 
-  LA::MPI::PreconditionAMG preconditioner_solid;
-  LA::MPI::PreconditionAMG preconditioner_phase_field;
+    LA::MPI::PreconditionAMG preconditioner_solid;
+    LA::MPI::PreconditionAMG preconditioner_phase_field;
 
-  // Global variables for timestepping scheme
-  unsigned int timestep_number;
-  unsigned int max_no_timesteps;
-  double timestep, timestep_size_2, time;
-  unsigned int switch_timestep;
-  struct OuterSolverType
-  {
-    enum Enum {active_set, simple_monolithic};
-  };
-  typename OuterSolverType::Enum outer_solver;
+    // Global variables for timestepping scheme
+    unsigned int timestep_number;
+    unsigned int max_no_timesteps;
+    double timestep, timestep_size_2, time;
+    unsigned int switch_timestep;
+    struct OuterSolverType
+    {
+      enum Enum {active_set, simple_monolithic};
+    };
+    typename OuterSolverType::Enum outer_solver;
 
-  struct TestCase
-  {
-    enum Enum {sneddon_2d, miehe_tension, miehe_shear, multiple_homo, multiple_het, three_point_bending};
-  };
-  typename TestCase::Enum test_case;
+    struct TestCase
+    {
+      enum Enum {sneddon_2d, miehe_tension, miehe_shear, multiple_homo, multiple_het, three_point_bending};
+    };
+    typename TestCase::Enum test_case;
 
-  struct RefinementStrategy
-  {
-    enum Enum {phase_field_ref, fixed_preref_sneddon, fixed_preref_miehe_tension,
-               fixed_preref_miehe_shear, fixed_preref_multiple_homo, fixed_preref_multiple_het,
-               global, mix, phase_field_ref_three_point_top
-              };
-  };
-  typename RefinementStrategy::Enum refinement_strategy;
+    struct RefinementStrategy
+    {
+      enum Enum {phase_field_ref, fixed_preref_sneddon, fixed_preref_miehe_tension,
+                 fixed_preref_miehe_shear, fixed_preref_multiple_homo, fixed_preref_multiple_het,
+                 global, mix, phase_field_ref_three_point_top
+                };
+    };
+    typename RefinementStrategy::Enum refinement_strategy;
 
-  bool direct_solver;
+    bool direct_solver;
 
-  double force_structure_x_biot, force_structure_y_biot;
-  double force_structure_x, force_structure_y;
+    double force_structure_x_biot, force_structure_y_biot;
+    double force_structure_x, force_structure_y;
 
-  // Biot parameters
-  double c_biot, alpha_biot, lame_coefficient_biot, K_biot, density_biot;
+    // Biot parameters
+    double c_biot, alpha_biot, lame_coefficient_biot, K_biot, density_biot;
 
-  double gravity_x, gravity_y, volume_source, traction_x, traction_y,
-         traction_x_biot, traction_y_biot;
+    double gravity_x, gravity_y, volume_source, traction_x, traction_y,
+           traction_x_biot, traction_y_biot;
 
-  // Structure parameters
-  double density_structure;
-  double lame_coefficient_mu, lame_coefficient_lambda, poisson_ratio_nu;
+    // Structure parameters
+    double density_structure;
+    double lame_coefficient_mu, lame_coefficient_lambda, poisson_ratio_nu;
 
-  // Other parameters to control the fluid mesh motion
-  double cell_diameter;
+    // Other parameters to control the fluid mesh motion
+    double cell_diameter;
 
-  FunctionParser<1> func_pressure;
-  double constant_k, alpha_eps,
-         G_c, viscosity_biot, gamma_penal;
+    FunctionParser<1> func_pressure;
+    double constant_k, alpha_eps,
+           G_c, viscosity_biot, gamma_penal;
 
-  double E_modulus, E_prime;
-  double min_cell_diameter, norm_part_iterations, value_phase_field_for_refinement;
+    double E_modulus, E_prime;
+    double min_cell_diameter, norm_part_iterations, value_phase_field_for_refinement;
 
-  unsigned int n_global_pre_refine, n_local_pre_refine, n_refinement_cycles;
+    unsigned int n_global_pre_refine, n_local_pre_refine, n_refinement_cycles;
 
-  double lower_bound_newton_residuum;
-  unsigned int max_no_newton_steps;
-  double upper_newton_rho;
-  unsigned int max_no_line_search_steps;
-  double line_search_damping;
-  double decompose_stress_rhs, decompose_stress_matrix;
-  std::string filename_basis;
-  double old_timestep, old_old_timestep;
-  bool use_old_timestep_pf;
+    double lower_bound_newton_residuum;
+    unsigned int max_no_newton_steps;
+    double upper_newton_rho;
+    unsigned int max_no_line_search_steps;
+    double line_search_damping;
+    double decompose_stress_rhs, decompose_stress_matrix;
+    std::string filename_basis;
+    double old_timestep, old_old_timestep;
+    bool use_old_timestep_pf;
 
 
 };
@@ -1911,16 +1911,16 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                                    Vector<double>(dim+1));
 
   std::vector<std::vector<Tensor<1,dim> > > old_solution_grads (n_q_points,
-      std::vector<Tensor<1,dim> > (dim+1));
+                                                                std::vector<Tensor<1,dim> > (dim+1));
 
   std::vector<Vector<double> > old_timestep_solution_values(n_q_points,
                                                             Vector<double>(dim+1));
 
   std::vector<std::vector<Tensor<1,dim> > > old_timestep_solution_grads (n_q_points,
-      std::vector<Tensor<1,dim> > (dim+1));
+                                                                         std::vector<Tensor<1,dim> > (dim+1));
 
   std::vector<Vector<double> > old_old_timestep_solution_values(n_q_points,
-      Vector<double>(dim+1));
+                                                                Vector<double>(dim+1));
 
   // Declaring test functions:
   std::vector<Tensor<1, dim> > phi_i_u(dofs_per_cell);
@@ -2596,26 +2596,26 @@ FracturePhaseFieldProblem<dim>::set_newton_bc ()
 template <class PreconditionerA, class PreconditionerC>
 class BlockDiagonalPreconditioner
 {
-public:
-  BlockDiagonalPreconditioner(const LA::MPI::BlockSparseMatrix  &M,
-                              const PreconditionerA &pre_A, const PreconditionerC &pre_C)
-    : matrix(M),
-      prec_A (pre_A),
-      prec_C (pre_C)
-  {
-  }
+  public:
+    BlockDiagonalPreconditioner(const LA::MPI::BlockSparseMatrix  &M,
+                                const PreconditionerA &pre_A, const PreconditionerC &pre_C)
+      : matrix(M),
+        prec_A (pre_A),
+        prec_C (pre_C)
+    {
+    }
 
-  void vmult (LA::MPI::BlockVector       &dst,
-              const LA::MPI::BlockVector &src) const
-  {
-    prec_A.vmult(dst.block(0), src.block(0));
-    prec_C.vmult(dst.block(1), src.block(1));
-  }
+    void vmult (LA::MPI::BlockVector       &dst,
+                const LA::MPI::BlockVector &src) const
+    {
+      prec_A.vmult(dst.block(0), src.block(0));
+      prec_C.vmult(dst.block(1), src.block(1));
+    }
 
 
-  const LA::MPI::BlockSparseMatrix &matrix;
-  const PreconditionerA &prec_A;
-  const PreconditionerC   &prec_C;
+    const LA::MPI::BlockSparseMatrix &matrix;
+    const PreconditionerA &prec_A;
+    const PreconditionerC   &prec_C;
 };
 
 // In this function, we solve the linear systems
@@ -4039,7 +4039,7 @@ FracturePhaseFieldProblem<dim>::run ()
         old_old_solution = old_solution;
         old_solution = solution;
 
-redo_step:
+      redo_step:
         pcout << std::endl;
         pcout << "\n=============================="
               << "=========================================" << std::endl;

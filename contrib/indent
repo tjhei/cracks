@@ -1,0 +1,24 @@
+#!/bin/bash
+
+
+if test ! -f cracks.cc -o ! -f CMakeLists.txt ; then
+  echo "*** This script must be run from the top-level directory."
+  exit
+fi
+
+if test ! -f contrib/astyle.rc ; then
+  echo "*** No style file contrib/astyle.rc found."
+  exit
+fi
+
+if test -z "`which astyle`" ; then
+  echo "*** No astyle program found."
+  exit
+fi
+
+if test "`astyle --version 2>&1`" != "Artistic Style Version 2.04" ; then
+  echo "*** Found a version of astyle different than the required version 2.04."
+  exit
+fi
+
+astyle --options=contrib/astyle.rc cracks.cc
