@@ -64,7 +64,7 @@ namespace LA
 #include <sstream>
 
 #define CATCH_CONFIG_RUNNER
-#include "catch.hpp"
+#include "contrib/catch.hpp"
 
 using namespace dealii;
 
