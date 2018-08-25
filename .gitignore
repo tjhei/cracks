@@ -6,3 +6,5 @@
 /CMakeCache.txt
 /CMakeFiles
 /cracks
+/build*/
+/default.prm
