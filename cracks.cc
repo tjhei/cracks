@@ -3086,13 +3086,13 @@ FracturePhaseFieldProblem<dim>::output_results () const
       std::string visit_master_filename = ("output/" + filename_basis
                                            + Utilities::int_to_string(refinement_cycle, 5) + ".visit");
       std::ofstream visit_master(visit_master_filename.c_str());
-      data_out.write_visit_record(visit_master, filenames);
+      DataOutBase::write_visit_record(visit_master, filenames);
 
       static std::vector<std::vector<std::string> > output_file_names_by_timestep;
       output_file_names_by_timestep.push_back(filenames);
       std::ofstream global_visit_master("output/solution.visit");
-      data_out.write_visit_record(global_visit_master,
-                                  output_file_names_by_timestep);
+      DataOutBase::write_visit_record(global_visit_master,
+                                      output_file_names_by_timestep);
     }
 }
 
@@ -4313,8 +4313,7 @@ main (
       FracturePhaseFieldProblem<2>::declare_parameters(prm);
       if (argc>1)
         {
-          if (!prm.read_input(argv[1], true))
-            AssertThrow(false, ExcMessage("could not read .prm!"));
+          prm.parse_input(argv[1]);
         }
       else
         {
@@ -4325,7 +4324,6 @@ main (
                     << " (created default.prm)" << std::endl;
           return 0;
         }
-
 
       FracturePhaseFieldProblem<2> fracture_problem(1, prm);
       fracture_problem.run();
