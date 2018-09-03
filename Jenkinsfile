@@ -67,7 +67,7 @@ pipeline {
     stage ("9.0") {
         agent  {
           docker {
-            image 'dealii/dealii:9.0.0-gcc-mpi-fulldepsspack-debugrelease'
+            image 'dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease'
             label 'has-docker'
             args '-v /home/docker/jenkins:/home/dealii/jenkins'
           }
@@ -76,16 +76,14 @@ pipeline {
         stages {
             stage("build") {
                 steps {
-                    sh '''bash -c ". /etc/profile.d/spack.sh && \
-                       cmake . && \
-                       make -j 4"
-                       '''
+                    sh 'cmake .'
+                    sh 'make -j 4'
                 }
             }
 
             stage('test') {
                 steps {
-                    sh 'echo "disabled for now ./cracks"'
+                    sh './cracks'
                 }
             }
         }
