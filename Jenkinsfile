@@ -34,6 +34,7 @@ pipeline {
                 }
             }
         }
+	post { cleanup { cleanWs() } }
     }
 
 
@@ -61,6 +62,7 @@ pipeline {
                 }
             }
         }
+	post { cleanup { cleanWs() } }
     }
 
 
@@ -89,7 +91,9 @@ pipeline {
                 }
             }
         }
+	post { cleanup { cleanWs() } }
     }
 
   }
+
 }
