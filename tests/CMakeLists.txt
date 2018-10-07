@@ -91,10 +91,11 @@ ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen
         COMMAND
 	echo "Check ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output ${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.output"
 	COMMAND
-	${TEST_DIFF} -V -a 1e-6 -r 1e-8 -s "' \\t\\n:<>=,;'"
-		>${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/output.diff
+	${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TEST_DIFF}
 		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output
 		${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.output
+		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}
+	COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/output.diff
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.output
                 ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output)
 
