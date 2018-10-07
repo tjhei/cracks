@@ -113,10 +113,10 @@ pipeline {
 
             stage('test') {
                 steps {
-                    sh './cracks'
-                    sh 'ctest --output-on-failure -j 4 || { touch FAILED; cat tests/output-*/diff >test.diff; } '
+                    sh 'export OMPI_MCA_btl=self,tcp;./cracks'
+                    sh 'export OMPI_MCA_btl=self,tcp;ctest --output-on-failure -j 4 || { touch FAILED; cat tests/output-*/diff >test.diff; } '
                     archiveArtifacts artifacts: 'test.diff', fingerprint: true, allowEmptyArchive: true
-                    sh 'ctest --output-on-failure -j 4'
+                    sh 'export OMPI_MCA_btl=self,tcp;ctest --output-on-failure -j 4'
                     sh 'if [ -f FAILED ]; then exit 1; fi'
                 }
             }
