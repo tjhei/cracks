@@ -359,43 +359,20 @@ class ExactPhiSneddon : public Function<dim>
 
 
 template <int dim>
-class SneddonExactPostProc : public DataPostprocessor<dim>
+class SneddonExactPostProc : public DataPostprocessorScalar<dim>
 {
   public:
     SneddonExactPostProc (const double eps)
-      : exact(eps)
+      :
+      DataPostprocessorScalar<dim> ("exact_phi", update_q_points),
+      exact(eps)
     {}
 
-    void compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
-                                            const std::vector<std::vector<Tensor<1,dim> > > &duh,
-                                            const std::vector<std::vector<Tensor<2,dim> > > &dduh,
-                                            const std::vector<Point<dim> >                  &normals,
-                                            const std::vector<Point<dim> >                   &evaluation_points,
-                                            std::vector<Vector<double> >                    &computed_quantities) const
-
+    void evaluate_vector_field (const DataPostprocessorInputs::Vector<dim> &input_data,
+                                std::vector<Vector<double> > &computed_quantities) const
     {
       for (unsigned int i=0; i<computed_quantities.size(); ++i)
-        computed_quantities[i][0] = exact.value(evaluation_points[i]);
-    }
-
-    virtual std::vector<std::string> get_names () const
-    {
-      std::vector<std::string> r;
-      r.push_back("exact_phi");
-      return r;
-    }
-
-    virtual
-    std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    get_data_component_interpretation () const
-    {
-      std::vector<DataComponentInterpretation::DataComponentInterpretation> r;
-      r.push_back(DataComponentInterpretation::component_is_scalar);
-      return r;
-    }
-    virtual UpdateFlags get_needed_update_flags () const
-    {
-      return  update_q_points;
+        computed_quantities[i][0] = exact.value(input_data.evaluation_points[i]);
     }
   private:
     ExactPhiSneddon<dim> exact;
