@@ -114,6 +114,7 @@ pipeline {
             stage('test') {
                 steps {
                     sh './cracks'
+                    sh 'ctest --output-on-failure -j 4'
                 }
             }
 

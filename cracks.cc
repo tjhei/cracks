@@ -62,6 +62,7 @@ namespace LA
 
 #include <fstream>
 #include <sstream>
+#include <sys/stat.h> // for mkdir
 
 #define CATCH_CONFIG_RUNNER
 #include "contrib/catch.hpp"
@@ -961,6 +962,7 @@ class FracturePhaseFieldProblem
     unsigned int max_no_line_search_steps;
     double line_search_damping;
     double decompose_stress_rhs, decompose_stress_matrix;
+    std::string output_folder;
     std::string filename_basis;
     double old_timestep, old_old_timestep;
     bool use_old_timestep_pf;
@@ -1023,6 +1025,8 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
 
     prm.declare_entry("value phase field for refinement", "0.0", Patterns::Double(0));
 
+    prm.declare_entry("Output directory", "output",
+                      Patterns::Anything());
     prm.declare_entry("Output filename", "solution_",
                       Patterns::Anything());
   }
@@ -1148,6 +1152,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   value_phase_field_for_refinement
     = prm.get_double("value phase field for refinement");
 
+  output_folder = prm.get ("Output directory");
   filename_basis  = prm.get ("Output filename");
 
   prm.leave_subsection();
@@ -1217,18 +1222,18 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   // and Miehe 2010 (tension and shear)
   typename GridIn<dim>::Format format = GridIn<dim>::ucd;
 
-  std::string grid_name;
+  std::string grid_name = std::string(SOURCE_DIR);
   if (test_case == TestCase::sneddon_2d ||
       test_case == TestCase::multiple_homo ||
       test_case == TestCase::multiple_het)
-    grid_name = "meshes/unit_square_4.inp";
+    grid_name += "/meshes/unit_square_4.inp";
   else if (test_case == TestCase::three_point_bending)
     {
-      grid_name = "meshes/threepoint.msh";
+      grid_name += "/meshes/threepoint.msh";
       format = GridIn<dim>::msh;
     }
   else
-    grid_name  = "meshes/unit_slit.inp";
+    grid_name  += "/meshes/unit_slit.inp";
 
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(triangulation);
@@ -3059,12 +3064,28 @@ FracturePhaseFieldProblem<dim>::output_results () const
 
   pcout << "Write solution " << refinement_cycle << std::endl;
 
-  filename << "output/"
+  filename << output_folder
+           << "/"
            << filename_basis
            << Utilities::int_to_string(refinement_cycle, 5)
            << "."
            << Utilities::int_to_string(triangulation.locally_owned_subdomain(), 4)
            << ".vtu";
+
+  if (Utilities::MPI::this_mpi_process(mpi_com) == 0)
+    {
+      // create output folder on rank 0 if needed
+      const mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+      int mkdir_return_value = mkdir(output_folder.c_str(), mode);
+
+      if (0!=mkdir_return_value && errno != EEXIST)
+        {
+          AssertThrow(false, ExcMessage("Can not create output directory"));
+        }
+    }
+  // make sure the directory is created before anyone continues
+  MPI_Barrier(mpi_com);
+
 
   std::ofstream output(filename.str().c_str());
   data_out.write_vtu(output);
@@ -3079,18 +3100,18 @@ FracturePhaseFieldProblem<dim>::output_results () const
           + "." + Utilities::int_to_string(i, 4) + ".vtu");
 
       std::ofstream master_output(
-        ("output/" + filename_basis + Utilities::int_to_string(refinement_cycle, 5)
+        (output_folder + "/" + filename_basis + Utilities::int_to_string(refinement_cycle, 5)
          + ".pvtu").c_str());
       data_out.write_pvtu_record(master_output, filenames);
 
-      std::string visit_master_filename = ("output/" + filename_basis
+      std::string visit_master_filename = (output_folder + "/" + filename_basis
                                            + Utilities::int_to_string(refinement_cycle, 5) + ".visit");
       std::ofstream visit_master(visit_master_filename.c_str());
       DataOutBase::write_visit_record(visit_master, filenames);
 
       static std::vector<std::vector<std::string> > output_file_names_by_timestep;
       output_file_names_by_timestep.push_back(filenames);
-      std::ofstream global_visit_master("output/solution.visit");
+      std::ofstream global_visit_master((output_folder + "/solution.visit").c_str());
       DataOutBase::write_visit_record(global_visit_master,
                                       output_file_names_by_timestep);
     }
