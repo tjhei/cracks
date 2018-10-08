@@ -340,6 +340,8 @@ class ExactPhiSneddon : public Function<dim>
     value (
       const Point<dim> &p, const unsigned int component = 0) const
     {
+      (void)component;
+
       double dist = 0.0;
       Point<dim> left(1.8, 2.0);
       Point<dim> right(2.2, 2.0);
