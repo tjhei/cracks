@@ -10,27 +10,27 @@ fi
 echo "checking indentation ..."
 docker run \
        --rm \
-       -v `pwd`:/home/dealii/source \
+       -v `pwd`:/source \
        dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease \
-       bash -c "cd source && ./contrib/indent && git diff --exit-code" \
+       bash -c "cd /source && ./contrib/indent && git diff --exit-code" \
     || { echo "Please check indentation!"; exit 1; }
 echo "    OK"
 
 echo "checking deal.II v8.5.1 ..."
 docker run \
        --rm \
-       -v `pwd`:/home/dealii/source \
+       -v `pwd`:/source \
        dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease \
-       bash -c "mkdir build; cd build; cmake ~/source && make -j 4 && ./cracks" \
+       bash -c "mkdir build; cd build; cmake /source && make -j 4 && ./cracks" \
     || { echo "Failed!"; exit 1; }
 echo "    OK"
 
 echo "checking deal.II v9.0.0 ..."
 docker run \
        --rm \
-       -v `pwd`:/home/dealii/source \
-       dealii/dealii:9.0.0-gcc-mpi-fulldepsspack-debugrelease \
-       bash -c "source /etc/profile.d/spack.sh; mkdir build; cd build; cmake ~/source && make -j 4 && ./cracks" \
+       -v `pwd`:/source \
+       dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease \
+       bash -c "mkdir build; cd build; cmake /source && make -j 4 && ./cracks && ctest -j 4" \
     || { echo "Failed!"; exit 1; }
 echo "    OK"
 
