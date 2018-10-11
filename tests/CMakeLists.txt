@@ -10,7 +10,7 @@ MESSAGE(STATUS "Setting up tests with CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}")
 PROJECT(testsuite CXX)
 
 ENABLE_TESTING()
-SET_IF_EMPTY(TEST_TIME_LIMIT 30)
+SET_IF_EMPTY(TEST_TIME_LIMIT 120)
 
 ADD_CUSTOM_TARGET(tests)
 
@@ -36,7 +36,7 @@ IF("${TEST_DIFF}" STREQUAL "")
 ENDIF()
 
 
-FILE(GLOB _tests *.prm)
+FILE(GLOB _tests *.output)
 
 SET(_n_tests "0")
 LIST(SORT _tests)
@@ -55,7 +55,19 @@ FOREACH(_test ${_tests})
     SET(_use_test OFF)
   ENDIF()
 
-    MESSAGE(STATUS "** processing test ${_testname}:")
+  SET(_test_prm "$_testname.prm")
+  STRING(REGEX MATCH "mpirun=([0-9]*)" NP ${_test})
+  IF("${NP}" STREQUAL "")
+    SET(NP 1)
+  ELSE()
+    STRING(REGEX REPLACE "^mpirun=([0-9]*)$" "\\1" NP ${NP})
+  ENDIF()
+
+  SET(_test_prm "${_testname}.prm")
+  SET(_testname "${_testname}-np${NP}")
+  SET(_test_ref_output "${_test}")
+
+  MESSAGE(STATUS "** processing test ${_testname}  NP=${NP}:")
 
    ADD_CUSTOM_TARGET(tests.${_testname}
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output)
@@ -65,7 +77,7 @@ FOREACH(_test ${_tests})
   FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname})
 
   ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm
-      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.prm
+      COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/${_test_prm}
                  ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm
       COMMAND echo ''
                  >> ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm
@@ -75,13 +87,13 @@ FOREACH(_test ${_tests})
                  >> ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm
       COMMAND echo 'end'
                  >> ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm
- DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.prm
+ DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_test_prm}
       )
 
 	SET(_replacement_script "${CMAKE_CURRENT_SOURCE_DIR}/default.pl")
 
 ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output
-        COMMAND ${CMAKE_BINARY_DIR}/cracks ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm >${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output.tmp
+        COMMAND mpirun -n ${NP} ${CMAKE_BINARY_DIR}/cracks ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm >${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output.tmp
         COMMAND ${_replacement_script} screen-output <${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output.tmp >${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output
         DEPENDS ${ASPECT_BINARY} ${CMAKE_CURRENT_BINARY_DIR}/${_testname}.x.prm ${_testdepends})
 
@@ -89,14 +101,14 @@ ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen
 # TODO
 	ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/output.diff
         COMMAND
-	echo "Check ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output ${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.output"
+	echo "Check ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output ${_test_ref_output}"
 	COMMAND
 	${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TEST_DIFF}
 		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output
-		${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.output
+		${_test_ref_output}
 		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}
 	COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/output.diff
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_testname}.output
+        DEPENDS ${_test_ref_output}
                 ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output)
 
 	ADD_CUSTOM_TARGET(${_testname}-diff
