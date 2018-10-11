@@ -8,7 +8,11 @@ Features:
 - primal-dual active set method for the irreversibility constraint
 - novel adaptive mesh refinement technique
 
-This project was originally developed for the two papers mentioned below, but has been extended considerably since then. The original code versions are available as separate branches in this repository:
+This project was originally developed for the two papers mentioned below, but
+has been extended considerably since then. Please cite these papers if you
+make use of our work. Thank you!
+
+The original code versions are available as separate branches in this repository:
 
 1. https://github.com/tjhei/cracks/tree/paper-2015 for
 
@@ -28,20 +32,20 @@ A preprint is available here: http://www.math.clemson.edu/~heister/preprints/HeW
 
 # How to run
 
-You need to install deal.II (see http://www.dealii.org) with external dependencies p4est and Trilinos. Then configure with:
+You need to install deal.II (see http://www.dealii.org) with external
+dependencies p4est and Trilinos. Then configure with:
 
+```
   cmake -D DEAL_II_DIR=/your/dealii-installation/ .
-
+```
 Compile with:
-
+```
   make
-
+```
 and finally run with:
-
+```
   mpirun -n 2 ./cracks parameters_sneddon_2d.prm
-
-If the code crashes with an exception "ExcIO", create an empty directory
-called "output".
+```
 
 # Notes
 
