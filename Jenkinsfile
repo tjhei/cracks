@@ -7,7 +7,6 @@ pipeline {
       agent  {
           docker {
             image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
-              label 'has-docker'
               }
       }
 
@@ -34,7 +33,6 @@ pipeline {
         agent  {
           docker {
             image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
-            label 'has-docker'
           }
         }
 
@@ -73,7 +71,6 @@ pipeline {
         agent  {
           docker {
             image 'dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease'
-            label 'has-docker'
           }
         }
 
