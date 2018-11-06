@@ -7,8 +7,6 @@ pipeline {
       agent  {
           docker {
             image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
-              label 'has-docker'
-              args '-v /home/docker/jenkins:/home/dealii/jenkins'
               }
       }
 
@@ -31,35 +29,10 @@ pipeline {
       }
     }
 
-    stage("main") {
-        agent  {
-          docker {
-            image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
-              label 'has-docker'
-              args '-v /home/docker/jenkins:/home/dealii/jenkins'
-              }
-        }
-
-        stages {
-            stage("conf") {
-                steps {
-                    echo "Running build ${env.BUILD_ID} on ${env.NODE_NAME}, env=${env.NODE_ENV}"
-                    sh 'printenv'
-                    sh 'ls -al'
-                }
-            }
-
-        }
-	post { cleanup { cleanWs() } }
-    }
-
-
     stage ("8.5") {
         agent  {
           docker {
             image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
-            label 'has-docker'
-            args '-v /home/docker/jenkins:/home/dealii/jenkins'
           }
         }
 
@@ -98,8 +71,6 @@ pipeline {
         agent  {
           docker {
             image 'dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease'
-            label 'has-docker'
-            args '-v /home/docker/jenkins:/home/dealii/jenkins'
           }
         }
 
