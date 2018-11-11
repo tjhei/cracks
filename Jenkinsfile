@@ -6,7 +6,7 @@ pipeline {
     stage("check") {
       agent  {
           docker {
-            image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
+            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1'
               }
       }
 
@@ -32,7 +32,7 @@ pipeline {
     stage ("8.5") {
         agent  {
           docker {
-            image 'dealii/dealii:v8.5.1-gcc-mpi-fulldepscandi-debugrelease'
+            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1'
           }
         }
 
@@ -70,7 +70,7 @@ pipeline {
     stage ("9.0") {
         agent  {
           docker {
-            image 'dealii/dealii:v9.0.0-gcc-mpi-fulldepscandi-debugrelease'
+            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r3'
           }
         }
 
@@ -84,10 +84,10 @@ pipeline {
 
             stage('test') {
                 steps {
-                    sh 'export OMPI_MCA_btl=self,tcp;./cracks'
-                    sh 'export OMPI_MCA_btl=self,tcp;ctest --output-on-failure -j 4 || { touch FAILED; cat tests/output-*/diff >test.diff; } '
+                    sh './cracks'
+                    sh 'ctest --output-on-failure -j 4 || { touch FAILED; cat tests/output-*/diff >test.diff; } '
                     archiveArtifacts artifacts: 'test.diff', fingerprint: true, allowEmptyArchive: true
-                    sh 'export OMPI_MCA_btl=self,tcp;ctest --output-on-failure -j 4'
+                    sh 'ctest --output-on-failure -j 4'
                     sh 'if [ -f FAILED ]; then exit 1; fi'
                 }
             }
