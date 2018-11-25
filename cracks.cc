@@ -4314,6 +4314,15 @@ main (
       if (argc>1)
         {
           prm.parse_input(argv[1]);
+          if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+            {
+              // generate parameters.prm in the output directory:
+              prm.enter_subsection("Global parameters");
+              std::ofstream out((prm.get("Output directory") + "/parameters.prm").c_str());
+              prm.leave_subsection();
+              prm.print_parameters (out,
+                                    ParameterHandler::Text);
+            }
         }
       else
         {
