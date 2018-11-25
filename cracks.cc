@@ -15,6 +15,7 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/timer.h>
+#include <deal.II/base/table_handler.h>
 #include <deal.II/base/parameter_handler.h>
 #include <deal.II/base/function_parser.h>
 
@@ -946,7 +947,7 @@ class FracturePhaseFieldProblem
     double old_timestep, old_old_timestep;
     bool use_old_timestep_pf;
 
-
+    TableHandler statistics;
 };
 
 // The constructor of this class is comparable
@@ -967,6 +968,7 @@ FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (
   timer(mpi_com, pcout, TimerOutput::every_call_and_summary,
         TimerOutput::cpu_and_wall_times)
 {
+  statistics.set_auto_fill_mode(true);
 }
 
 
@@ -3441,7 +3443,8 @@ FracturePhaseFieldProblem<dim>::compute_energy()
   pcout << "No " << timestep_number << " time " << time
         << " bulk energy: " << bulk_energy
         << " crack energy: " << crack_energy;
-
+  statistics.add_value("Bulk Energy", bulk_energy);
+  statistics.add_value("Crack Energy", crack_energy);
 
   return 0;
 
@@ -3547,16 +3550,22 @@ FracturePhaseFieldProblem<dim>::compute_load ()
 
   if (test_case == TestCase::miehe_tension)
     {
-      pcout << "  Load y: " << Utilities::MPI::sum(load_value[1], mpi_com);
+      double load_y = Utilities::MPI::sum(load_value[1], mpi_com);
+      pcout << "  Load y: " << load_y;
+      statistics.add_value("Load y", load_y);
     }
   else if (test_case == TestCase::miehe_shear)
     {
-      pcout << "  Load x: " << Utilities::MPI::sum(load_value[0], mpi_com);
+      double load_x = Utilities::MPI::sum(load_value[0], mpi_com);
+      pcout << "  Load x: " << load_x;
+      statistics.add_value("Load x", load_x);
     }
   else if (test_case == TestCase::three_point_bending)
     {
       load_value[1] *= -1.0;
-      pcout << "  P11: " << Utilities::MPI::sum(load_value[1], mpi_com);
+      double load = Utilities::MPI::sum(load_value[1], mpi_com);
+      pcout << "  P11: " << load;
+      statistics.add_value("Load P11", load);
     }
 }
 
@@ -4169,6 +4178,10 @@ FracturePhaseFieldProblem<dim>::run ()
         // Set timestep to original timestep
         timestep = tmp_timestep;
 
+        statistics.add_value("Timestep No", timestep_number);
+        statistics.add_value("Time", time);
+        statistics.add_value("DoFs", dof_handler.n_dofs());
+
         // Compute statistics and print them in a single line:
         {
           pcout << std::endl;
@@ -4194,6 +4207,14 @@ FracturePhaseFieldProblem<dim>::run ()
         // Write solutions
         if ((timestep_number % output_skip == 0))
           output_results();
+
+        if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+          {
+            std::ofstream stat_file ((output_folder+"/statistics").c_str());
+            statistics.write_text (stat_file,
+                                   TableHandler::simple_table_with_separate_column_description);
+            stat_file.close();
+          }
 
         // is this the residual? rename variable if not
         LA::MPI::BlockVector residual(partition);
