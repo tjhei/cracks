@@ -70,7 +70,7 @@ pipeline {
     stage ("9.0") {
         agent  {
           docker {
-            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r3'
+            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r4'
           }
         }
 
