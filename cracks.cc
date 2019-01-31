@@ -3108,10 +3108,11 @@ FracturePhaseFieldProblem<dim>::compute_point_value (
   const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
   const Point<dim> &p, const unsigned int component) const
 {
-  double value = 0.0;
+  double value = -1e100;
+  Assert(component < dofh.get_fe().n_components(), ExcInternalError());
   try
     {
-      Vector<double> tmp_vector(dim);
+      Vector<double> tmp_vector(dofh.get_fe().n_components());
       VectorTools::point_value(dofh, vector, p, tmp_vector);
       value = tmp_vector(component);
     }
@@ -3119,7 +3120,7 @@ FracturePhaseFieldProblem<dim>::compute_point_value (
     {
     }
 
-  return Utilities::MPI::sum(value, mpi_com);
+  return Utilities::MPI::max(value, mpi_com);
 }
 
 template <int dim>
