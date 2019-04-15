@@ -30,7 +30,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	9.926588e-14	8.713380e-01	0	1
 4	0	9.881913e-14	9.954995e-01	1	1
 
-No 0 time 0.0005 bulk energy: 0.00809414 crack energy: 9.31502e-06  Load x: 32.4555
+No 0 time 0.0005 bulk energy: 0.00809414 crack energy: 9.86425e-06  Load x: 32.4555
 Write solution 1
 
 
@@ -47,7 +47,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 5	0	2.068183e-13	9.283477e-01	0	1
 6	0	2.022093e-13	9.777149e-01	0	1
 
-No 1 time 0.001 bulk energy: 0.0322985 crack energy: 3.78542e-05  Load x: 64.8685
+No 1 time 0.001 bulk energy: 0.0322985 crack energy: 4.07668e-05  Load x: 64.8685
 Write solution 2
 
 
@@ -62,7 +62,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	4.478740e-13	4.661981e-02	0	1
 4	0	3.437578e-13	7.675323e-01	0	1
 
-No 2 time 0.0015 bulk energy: 0.0722326 crack energy: 0.000190345  Load x: 97.1969
+No 2 time 0.0015 bulk energy: 0.0722326 crack energy: 0.000205587  Load x: 97.1969
 Write solution 3
 
 
@@ -77,7 +77,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	4.609623e-13	4.360930e-03	0	1
 4	0	4.278112e-13	9.280827e-01	0	1
 
-No 3 time 0.002 bulk energy: 0.127326 crack energy: 0.000599942  Load x: 129.349
+No 3 time 0.002 bulk energy: 0.127326 crack energy: 0.000649105  Load x: 129.349
 Write solution 4
 
 
@@ -92,7 +92,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	8.696314e-13	1.960472e-03	0	1
 4	0	6.122446e-13	7.040276e-01	0	1
 
-No 4 time 0.0025 bulk energy: 0.196781 crack energy: 0.00145946  Load x: 161.297
+No 4 time 0.0025 bulk energy: 0.196781 crack energy: 0.00158123  Load x: 161.297
 Write solution 5
 
 
@@ -107,7 +107,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	8.490324e-13	6.135765e-04	0	1
 4	0	7.961513e-13	9.377160e-01	0	1
 
-No 5 time 0.003 bulk energy: 0.279589 crack energy: 0.00301425  Load x: 192.974
+No 5 time 0.003 bulk energy: 0.279589 crack energy: 0.00327039  Load x: 192.974
 Write solution 6
 
 
@@ -122,7 +122,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	9.778723e-13	2.824134e-04	0	1
 4	0	9.061995e-13	9.267054e-01	0	1
 
-No 6 time 0.0035 bulk energy: 0.374548 crack energy: 0.00555968  Load x: 224.312
+No 6 time 0.0035 bulk energy: 0.374548 crack energy: 0.00604185  Load x: 224.312
 Write solution 7
 
 
@@ -137,7 +137,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	9.590850e-13	1.295344e-04	0	1
 4	0	8.814173e-13	9.190189e-01	0	1
 
-No 7 time 0.004 bulk energy: 0.480275 crack energy: 0.00943939  Load x: 255.238
+No 7 time 0.004 bulk energy: 0.480275 crack energy: 0.0102774  Load x: 255.238
 Write solution 8
 
 
@@ -152,7 +152,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.216523e-12	8.770208e-05	0	1
 4	0	9.471923e-13	7.786062e-01	0	1
 
-No 8 time 0.0045 bulk energy: 0.59522 crack energy: 0.0150442  Load x: 285.664
+No 8 time 0.0045 bulk energy: 0.59522 crack energy: 0.0164165  Load x: 285.664
 Write solution 9
 
 
@@ -167,7 +167,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.621094e-12	6.422900e-05	0	1
 4	0	1.339992e-12	8.265970e-01	0	1
 
-No 9 time 0.005 bulk energy: 0.717679 crack energy: 0.0228121  Load x: 315.492
+No 9 time 0.005 bulk energy: 0.717679 crack energy: 0.0249596  Load x: 315.492
 Write solution 10
 
 
@@ -182,7 +182,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.576983e-12	4.105618e-05	0	1
 4	0	1.407145e-12	8.923018e-01	0	1
 
-No 10 time 0.0055 bulk energy: 0.8458 crack energy: 0.0332309  Load x: 344.604
+No 10 time 0.0055 bulk energy: 0.8458 crack energy: 0.0364755  Load x: 344.604
 Write solution 11
 
 
@@ -197,7 +197,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.451364e-12	2.346931e-05	0	1
 4	0	1.340458e-12	9.235855e-01	1	1
 
-No 11 time 0.006 bulk energy: 0.977585 crack energy: 0.0468438  Load x: 372.858
+No 11 time 0.006 bulk energy: 0.977585 crack energy: 0.0516153  Load x: 372.858
 Write solution 12
 
 
@@ -212,7 +212,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.732179e-12	2.026948e-05	0	1
 4	0	1.487550e-12	8.587739e-01	0	1
 
-No 12 time 0.0065 bulk energy: 1.11087 crack energy: 0.0642614  Load x: 400.079
+No 12 time 0.0065 bulk energy: 1.11087 crack energy: 0.0711372  Load x: 400.079
 Write solution 13
 
 
@@ -227,7 +227,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.601117e-12	1.349841e-05	0	1
 4	0	1.464312e-12	9.145564e-01	0	1
 
-No 13 time 0.007 bulk energy: 1.24331 crack energy: 0.086184  Load x: 426.045
+No 13 time 0.007 bulk energy: 1.24331 crack energy: 0.0959483  Load x: 426.045
 Write solution 14
 
 
@@ -242,7 +242,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	6.129757e-11	4.353643e-07	0	1
 4	0	1.412618e-12	2.304525e-02	0	1
 
-No 14 time 0.0075 bulk energy: 1.37225 crack energy: 0.11344  Load x: 450.467
+No 14 time 0.0075 bulk energy: 1.37225 crack energy: 0.12718  Load x: 450.467
 Write solution 15
 
 
@@ -257,7 +257,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	1.855017e-12	6.084450e-06	0	1
 4	0	1.381164e-12	7.445561e-01	0	1
 
-No 15 time 0.008 bulk energy: 1.49464 crack energy: 0.147058  Load x: 472.952
+No 15 time 0.008 bulk energy: 1.49464 crack energy: 0.166319  Load x: 472.952
 Write solution 16
 
 
@@ -272,7 +272,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	2.069201e-12	3.223847e-06	0	1
 4	0	2.021085e-12	9.767466e-01	0	1
 
-No 16 time 0.0085 bulk energy: 1.60669 crack energy: 0.188393  Load x: 492.945
+No 16 time 0.0085 bulk energy: 1.60669 crack energy: 0.215457  Load x: 492.945
 Write solution 17
 
 
@@ -287,7 +287,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	2.155454e-12	1.342165e-06	0	1
 4	0	1.999346e-12	9.275752e-01	1	1
 
-No 17 time 0.009 bulk energy: 1.70332 crack energy: 0.23938  Load x: 509.62
+No 17 time 0.009 bulk energy: 1.70332 crack energy: 0.277771  Load x: 509.62
 Write solution 18
 
 
@@ -302,7 +302,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	0	5.142041e-12	6.970051e-07	0	1
 4	0	2.245075e-12	4.366117e-01	0	1
 
-No 18 time 0.0095 bulk energy: 1.77694 crack energy: 0.303026  Load x: 521.664
+No 18 time 0.0095 bulk energy: 1.77694 crack energy: 0.358507  Load x: 521.664
 Write solution 19
 
 
@@ -319,7 +319,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 5	7	4.126233e-03	1.745639e+09	10	1
 6	7	2.393655e-12	5.801066e-10	0	1
 
-No 19 time 0.01 bulk energy: 1.8155 crack energy: 0.383933  Load x: 526.833
+No 19 time 0.01 bulk energy: 1.8155 crack energy: 0.46671  Load x: 526.833
 Write solution 20
 
 
@@ -339,7 +339,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 8	1	2.458181e-03	8.693444e+08	10	1
 9	1	2.886205e-12	1.174122e-09	0	1
 
-No 20 time 0.0105 bulk energy: 1.79271 crack energy: 0.49306  Load x: 520.406
+No 20 time 0.0105 bulk energy: 1.79271 crack energy: 0.621746  Load x: 520.406
 Write solution 21
 
 
@@ -359,7 +359,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 8	61	1.007006e-03	3.450165e+08	10	1
 9	61	3.025643e-12	3.004593e-09	0	1
 
-No 21 time 0.011 bulk energy: 1.66116 crack energy: 0.648549  Load x: 495.658
+No 21 time 0.011 bulk energy: 1.66116 crack energy: 0.857732  Load x: 495.658
 Write solution 22
 
 
@@ -378,7 +378,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 7	119	9.719245e-04	3.315074e+08	10	1
 8	119	2.985985e-12	3.072240e-09	0	1
 
-No 22 time 0.0115 bulk energy: 1.34798 crack energy: 0.877587  Load x: 438.412
+No 22 time 0.0115 bulk energy: 1.34798 crack energy: 1.21933  Load x: 438.412
 Write solution 23
 
 
@@ -397,7 +397,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 7	154	5.904305e-04	1.760553e+08	10	1
 8	154	3.379342e-12	5.723522e-09	0	1
 
-No 23 time 0.012 bulk energy: 0.914417 crack energy: 1.16818  Load x: 347.282
+No 23 time 0.012 bulk energy: 0.914417 crack energy: 1.6511  Load x: 347.282
 Write solution 24
 
 
@@ -415,7 +415,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 6	173	2.943627e-12	8.847879e-01	0	1
 7	173	2.890134e-12	9.818273e-01	1	1
 
-No 24 time 0.0125 bulk energy: 0.533178 crack energy: 1.4106  Load x: 256.266
+No 24 time 0.0125 bulk energy: 0.533178 crack energy: 2.00791  Load x: 256.266
 Write solution 25
 
 Finishing time step loop: 0.230957
