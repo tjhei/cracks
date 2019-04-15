@@ -6,7 +6,7 @@ pipeline {
     stage("check") {
       agent  {
           docker {
-            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1'
+            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1-gcc5'
               }
       }
 
@@ -32,7 +32,7 @@ pipeline {
     stage ("8.5") {
         agent  {
           docker {
-            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1'
+            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1-gcc5'
           }
         }
 
@@ -70,7 +70,7 @@ pipeline {
     stage ("9.0") {
         agent  {
           docker {
-            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r4'
+            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r5-gcc5'
           }
         }
 
