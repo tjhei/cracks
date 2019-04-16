@@ -3420,6 +3420,8 @@ FracturePhaseFieldProblem<dim>::compute_energy()
           {
             const Tensor<2,dim> grad_u = Tensors
                                          ::get_grad_u<dim> (q, solution_grads);
+            const Tensor<1,dim> grad_pf = Tensors
+                                          ::get_grad_pf<dim> (q, solution_grads);
 
             const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
             const double tr_E = trace(E);
@@ -3432,7 +3434,7 @@ FracturePhaseFieldProblem<dim>::compute_energy()
 
             local_bulk_energy += ((1+constant_k)*pf*pf+constant_k) * psi_e * fe_values.JxW(q);
 
-            local_crack_energy += G_c/2.0 * ((pf-1) * (pf-1)/alpha_eps + alpha_eps * scalar_product(grad_u, grad_u))
+            local_crack_energy += G_c/2.0 * ((pf-1) * (pf-1)/alpha_eps + alpha_eps * scalar_product(grad_pf, grad_pf))
                                   * fe_values.JxW(q);
           }
 

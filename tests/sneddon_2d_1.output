@@ -31,7 +31,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 2	15	1.904605e-13	5.192420e-07	0	1
 3	15	7.991704e-16	4.195989e-03	0	2
 
-No 0 time 1 bulk energy: 4.56849e-07 crack energy: 1.25963
+No 0 time 1 bulk energy: 4.56849e-07 crack energy: 2.73891
 Write solution 1
 Timestep difference linfty: 0.677421
 
@@ -47,7 +47,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	51	3.341491e-07	7.688053e+08	10	1
 4	51	5.246564e-16	1.570127e-09	0	1
 
-No 1 time 2 bulk energy: 3.45421e-06 crack energy: 1.25965
+No 1 time 2 bulk energy: 3.45421e-06 crack energy: 2.73891
 Write solution 2
 Timestep difference linfty: 0.00197124
 
@@ -63,7 +63,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 3	67	4.349075e-08	1.413364e+08	10	1
 4	67	4.974517e-16	1.143810e-08	0	1
 
-No 2 time 3 bulk energy: 1.31755e-06 crack energy: 1.25963
+No 2 time 3 bulk energy: 1.31755e-06 crack energy: 2.73891
 Write solution 3
 Timestep difference linfty: 0.00177247
 
@@ -78,7 +78,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 2	67	1.079647e-13	4.160263e+02	10	1
 3	67	3.747998e-16	3.471504e-03	0	1
 
-No 3 time 4 bulk energy: 1.31754e-06 crack energy: 1.25963
+No 3 time 4 bulk energy: 1.31754e-06 crack energy: 2.73891
 Write solution 4
 Timestep difference linfty: 4.35217e-10
 writing cod-01b.txt
