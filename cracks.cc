@@ -23,14 +23,21 @@
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/block_sparse_matrix.h>
 #include <deal.II/lac/sparse_direct.h>
-#include <deal.II/lac/constraint_matrix.h>
+
+#if DEAL_II_VERSION_GTE(9,1,0)
+#  include <deal.II/lac/affine_constraints.h>
+using ConstraintMatrix = dealii::AffineConstraints<double>;
+#else
+#  include <deal.II/lac/constraint_matrix.h>
+#  include <deal.II/grid/tria_boundary_lib.h>
+#endif
+
 #include <deal.II/lac/solver_gmres.h>
 
 #include <deal.II/grid/tria.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_accessor.h>
 #include <deal.II/grid/tria_iterator.h>
-#include <deal.II/grid/tria_boundary_lib.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/grid_in.h>
 
@@ -367,7 +374,7 @@ class SneddonExactPostProc : public DataPostprocessorScalar<dim>
   public:
     SneddonExactPostProc (const double eps)
       :
-      DataPostprocessorScalar<dim> ("exact_phi", update_q_points),
+      DataPostprocessorScalar<dim> ("exact_phi", update_quadrature_points),
       exact(eps)
     {}
 
@@ -746,7 +753,7 @@ class BoundaryThreePoint : public Function<dim>
 // with number 0.
 template <int dim>
 double
-BoundaryThreePoint<dim>::value (const Point<dim>  &p,
+BoundaryThreePoint<dim>::value (const Point<dim>  &/*p*/,
                                 const unsigned int component) const
 {
   Assert (component < this->n_components,
@@ -3034,9 +3041,25 @@ FracturePhaseFieldProblem<dim>::output_results () const
     subdomain(i) = triangulation.locally_owned_subdomain();
   data_out.add_data_vector(subdomain, "subdomain");
 
+
+  TrilinosWrappers::MPI::Vector active_set_vector;
+
   if (outer_solver == OuterSolverType::active_set)
-    data_out.add_data_vector(dof_handler, active_set,
-                             "active_set");
+    {
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+
+      TrilinosWrappers::MPI::Vector distributed_active_set_vector(
+        dof_handler.locally_owned_dofs(), MPI_COMM_WORLD);
+      for (const auto index : active_set)
+        distributed_active_set_vector[index] = 1.;
+
+      active_set_vector.reinit(locally_relevant_dofs, MPI_COMM_WORLD);
+      active_set_vector = distributed_active_set_vector;
+
+      data_out.add_data_vector(dof_handler, active_set_vector,
+                               "active_set");
+    }
 
   data_out.build_patches();
 

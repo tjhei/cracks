@@ -91,6 +91,31 @@ pipeline {
                     sh 'if [ -f FAILED ]; then exit 1; fi'
                 }
             }
+        }
+
+        post { cleanup { cleanWs() } }
+    }
+
+    stage ("9.1") {
+        agent  {
+          docker {
+            image 'tjhei/dealii:v9.1.1-full-v9.1.1-r1-clang6'
+          }
+        }
+
+        stages {
+            stage("build") {
+                steps {
+                    sh 'cmake .'
+                    sh 'make -j 4'
+                }
+            }
+
+            stage('test') {
+                steps {
+                    sh './cracks'
+                }
+            }
 
             stage("end") {
               steps {
@@ -101,7 +126,6 @@ pipeline {
 
         post { cleanup { cleanWs() } }
     }
-
   }
 
 }
