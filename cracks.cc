@@ -26,6 +26,7 @@
 
 #if DEAL_II_VERSION_GTE(9,1,0)
 #  include <deal.II/lac/affine_constraints.h>
+using ConstraintMatrix = dealii::AffineConstraints<double>;
 #else
 #  include <deal.II/lac/constraint_matrix.h>
 #  include <deal.II/grid/tria_boundary_lib.h>
