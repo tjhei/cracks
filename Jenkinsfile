@@ -106,7 +106,7 @@ pipeline {
         stages {
             stage("build") {
                 steps {
-                    sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
+                    sh 'cmake .'
                     sh 'make -j 4'
                 }
             }
