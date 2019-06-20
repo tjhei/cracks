@@ -1,0 +1,52 @@
+# Three point bending test from 
+# Miehe, Hofacker, Welschinger, 2010
+# --------------------------------------------------------
+
+subsection Global parameters
+  set Global pre-refinement steps	= 0
+  set Local pre-refinement steps  	= 0
+  set Adaptive refinement cycles        = 1
+
+  set Max No of timesteps  	  	= 8
+  set Timestep size			= 5.0e-3
+  set Timestep size to switch to	= 1.0e-3 
+  set Switch timestep after steps	= 35
+
+
+  set outer solver                      = active set 
+  set test case                         = three point bending
+  # phase field, 
+  # phase field three point top
+  # mix
+  set ref strategy                      = phase field
+
+  set value phase field for refinement  = 0.5
+  set Output filename	    		= solution_tp_
+end
+
+subsection Problem dependent parameters
+  set K reg				= 1.0e-10
+  set Eps reg				= 2.0*h
+  set Gamma penalization		= 0.0
+
+  # Material and problem-rhs parameters
+  set Pressure				= 0.0
+  set Fracture toughness G_c		= 0.25 
+  set Density solid	 		= 1.0
+  set Poisson ratio nu			= 0.3
+  set E modulus	    			= 1e+3
+  set Lame mu				= 8.0e+3
+  set Lame lambda			= 12.0e+3	  
+end 
+
+subsection Solver parameters
+  set Use Direct Inner Solver		   = false
+  set Newton lower bound     		   = 1.0e-6
+  set Newton maximum steps		   = 30
+  set Upper Newton rho			   = 0.99
+  set Line search maximum steps		   = 10
+  set Line search damping 		   = 0.6
+  set Decompose stress in rhs		   = 1.0
+  set Decompose stress in matrix	   = 1.0
+
+end
