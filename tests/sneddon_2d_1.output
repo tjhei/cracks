@@ -19,6 +19,7 @@ Lame mu:           0.416667
 Lame lambda:       0.277778
 
 Write solution 0
+	as output-sneddon_2d_1-np1/solution_00000.visit
 
 
 =======================================================================
@@ -33,6 +34,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 0 time 1 bulk energy: 4.56849e-07 crack energy: 2.73891
 Write solution 1
+	as output-sneddon_2d_1-np1/solution_00001.visit
 Timestep difference linfty: 0.677421
 
 
@@ -49,6 +51,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 1 time 2 bulk energy: 3.45421e-06 crack energy: 2.73891
 Write solution 2
+	as output-sneddon_2d_1-np1/solution_00002.visit
 Timestep difference linfty: 0.00197124
 
 
@@ -65,6 +68,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 2 time 3 bulk energy: 1.31755e-06 crack energy: 2.73891
 Write solution 3
+	as output-sneddon_2d_1-np1/solution_00003.visit
 Timestep difference linfty: 0.00177247
 
 
@@ -80,6 +84,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 3 time 4 bulk energy: 1.31754e-06 crack energy: 2.73891
 Write solution 4
+	as output-sneddon_2d_1-np1/solution_00004.visit
 Timestep difference linfty: 4.35217e-10
 writing cod-01b.txt
 1  0.000251362

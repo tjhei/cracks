@@ -17,6 +17,7 @@ Lame mu:           80770
 Lame lambda:       121150
 
 Write solution 0
+	as output-miehe_tension_adaptive_1-np1/solution00000.visit
 
 
 =======================================================================
@@ -32,6 +33,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 0 time 0.00025 bulk energy: 0.00441967 crack energy: 2.08087e-06  Load y: 36.9112
 Write solution 1
+	as output-miehe_tension_adaptive_1-np1/solution00001.visit
 
 
 =======================================================================
@@ -47,6 +49,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 1 time 0.0005 bulk energy: 0.0176288 crack energy: 3.32046e-05  Load y: 73.8003
 Write solution 2
+	as output-miehe_tension_adaptive_1-np1/solution00002.visit
 
 
 =======================================================================
@@ -62,6 +65,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 2 time 0.00075 bulk energy: 0.039479 crack energy: 0.00016739  Load y: 110.617
 Write solution 3
+	as output-miehe_tension_adaptive_1-np1/solution00003.visit
 
 
 =======================================================================
@@ -77,6 +81,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 3 time 0.001 bulk energy: 0.0697257 crack energy: 0.000525926  Load y: 147.335
 Write solution 4
+	as output-miehe_tension_adaptive_1-np1/solution00004.visit
 
 
 =======================================================================
@@ -92,6 +97,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 4 time 0.00125 bulk energy: 0.108033 crack energy: 0.00127436  Load y: 183.919
 Write solution 5
+	as output-miehe_tension_adaptive_1-np1/solution00005.visit
 
 
 =======================================================================
@@ -107,6 +113,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 5 time 0.0015 bulk energy: 0.15398 crack energy: 0.00261844  Load y: 220.338
 Write solution 6
+	as output-miehe_tension_adaptive_1-np1/solution00006.visit
 
 
 =======================================================================
@@ -122,6 +129,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 6 time 0.00175 bulk energy: 0.207069 crack energy: 0.0047992  Load y: 256.557
 Write solution 7
+	as output-miehe_tension_adaptive_1-np1/solution00007.visit
 
 
 =======================================================================
@@ -137,6 +145,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 7 time 0.002 bulk energy: 0.26673 crack energy: 0.00808739  Load y: 292.543
 Write solution 8
+	as output-miehe_tension_adaptive_1-np1/solution00008.visit
 
 
 =======================================================================
@@ -152,6 +161,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 8 time 0.00225 bulk energy: 0.332337 crack energy: 0.0127775  Load y: 328.263
 Write solution 9
+	as output-miehe_tension_adaptive_1-np1/solution00009.visit
 
 
 =======================================================================
@@ -167,6 +177,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 9 time 0.0025 bulk energy: 0.403213 crack energy: 0.0191813  Load y: 363.683
 Write solution 10
+	as output-miehe_tension_adaptive_1-np1/solution00010.visit
 
 
 =======================================================================
@@ -182,6 +193,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 10 time 0.00275 bulk energy: 0.478639 crack energy: 0.0276223  Load y: 398.769
 Write solution 11
+	as output-miehe_tension_adaptive_1-np1/solution00011.visit
 
 
 =======================================================================
@@ -197,6 +209,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 11 time 0.003 bulk energy: 0.557867 crack energy: 0.0384294  Load y: 433.486
 Write solution 12
+	as output-miehe_tension_adaptive_1-np1/solution00012.visit
 
 
 =======================================================================
@@ -212,6 +225,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 12 time 0.00325 bulk energy: 0.640129 crack energy: 0.0519321  Load y: 467.798
 Write solution 13
+	as output-miehe_tension_adaptive_1-np1/solution00013.visit
 
 
 =======================================================================
@@ -227,6 +241,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 13 time 0.0035 bulk energy: 0.72464 crack energy: 0.0684561  Load y: 501.668
 Write solution 14
+	as output-miehe_tension_adaptive_1-np1/solution00014.visit
 
 
 =======================================================================
@@ -242,6 +257,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 14 time 0.00375 bulk energy: 0.810609 crack energy: 0.0883208  Load y: 535.053
 Write solution 15
+	as output-miehe_tension_adaptive_1-np1/solution00015.visit
 
 
 =======================================================================
@@ -257,6 +273,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 15 time 0.004 bulk energy: 0.897242 crack energy: 0.111838  Load y: 567.91
 Write solution 16
+	as output-miehe_tension_adaptive_1-np1/solution00016.visit
 
 
 =======================================================================
@@ -272,6 +289,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 16 time 0.00425 bulk energy: 0.983739 crack energy: 0.139313  Load y: 600.185
 Write solution 17
+	as output-miehe_tension_adaptive_1-np1/solution00017.visit
 
 
 =======================================================================
@@ -287,6 +305,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 17 time 0.0045 bulk energy: 1.0693 crack energy: 0.17105  Load y: 631.816
 Write solution 18
+	as output-miehe_tension_adaptive_1-np1/solution00018.visit
 
 
 =======================================================================
@@ -302,6 +321,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 18 time 0.00475 bulk energy: 1.1531 crack energy: 0.20736  Load y: 662.721
 Write solution 19
+	as output-miehe_tension_adaptive_1-np1/solution00019.visit
 
 
 =======================================================================
@@ -317,6 +337,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 19 time 0.005 bulk energy: 1.23429 crack energy: 0.248574  Load y: 692.791
 Write solution 20
+	as output-miehe_tension_adaptive_1-np1/solution00020.visit
 
 
 =======================================================================
@@ -333,6 +354,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 20 time 0.00525 bulk energy: 1.31197 crack energy: 0.295075  Load y: 721.868
 Write solution 21
+	as output-miehe_tension_adaptive_1-np1/solution00021.visit
 
 
 =======================================================================
@@ -349,6 +371,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 21 time 0.0055 bulk energy: 1.3851 crack energy: 0.347334  Load y: 749.716
 Write solution 22
+	as output-miehe_tension_adaptive_1-np1/solution00022.visit
 
 
 =======================================================================
@@ -365,6 +388,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 22 time 0.00575 bulk energy: 1.45246 crack energy: 0.405985  Load y: 775.958
 Write solution 23
+	as output-miehe_tension_adaptive_1-np1/solution00023.visit
 
 
 =======================================================================
@@ -383,6 +407,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 23 time 0.006 bulk energy: 1.51247 crack energy: 0.471966  Load y: 799.953
 Write solution 24
+	as output-miehe_tension_adaptive_1-np1/solution00024.visit
 
 
 =======================================================================
@@ -401,6 +426,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 24 time 0.00625 bulk energy: 1.56282 crack energy: 0.546783  Load y: 820.702
 Write solution 25
+	as output-miehe_tension_adaptive_1-np1/solution00025.visit
 
 
 =======================================================================
@@ -438,6 +464,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 25 time 0.0065 bulk energy: 1.56279 crack energy: 0.636559  Load y: 824.848
 Write solution 26
+	as output-miehe_tension_adaptive_1-np1/solution00026.visit
 
 
 =======================================================================
@@ -472,6 +499,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 26 time 0.00675 bulk energy: 1.54004 crack energy: 0.765304  Load y: 817.485
 Write solution 27
+	as output-miehe_tension_adaptive_1-np1/solution00027.visit
 
 
 =======================================================================
@@ -507,6 +535,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 27 time 0.007 bulk energy: 1.43668 crack energy: 0.956215  Load y: 771.284
 Write solution 28
+	as output-miehe_tension_adaptive_1-np1/solution00028.visit
 
 
 =======================================================================
@@ -558,6 +587,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 28 time 0.00725 bulk energy: 1.21945 crack energy: 1.21851  Load y: 659.19
 Write solution 29
+	as output-miehe_tension_adaptive_1-np1/solution00029.visit
 
 
 =======================================================================
@@ -593,6 +623,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 29 time 0.0075 bulk energy: 0.964178 crack energy: 1.47866  Load y: 527.724
 Write solution 30
+	as output-miehe_tension_adaptive_1-np1/solution00030.visit
 
 
 =======================================================================
@@ -717,6 +748,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 30 time 0.007525 bulk energy: 0.68657 crack energy: 1.69898  Load y: 382.952
 Write solution 31
+	as output-miehe_tension_adaptive_1-np1/solution00031.visit
 
 
 =======================================================================
@@ -751,6 +783,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 31 time 0.007775 bulk energy: 0.453405 crack energy: 1.90366  Load y: 264.724
 Write solution 32
+	as output-miehe_tension_adaptive_1-np1/solution00032.visit
 
 
 =======================================================================
@@ -786,6 +819,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 32 time 0.008025 bulk energy: 0.17959 crack energy: 2.08839  Load y: 113.746
 Write solution 33
+	as output-miehe_tension_adaptive_1-np1/solution00033.visit
 
 Finishing time step loop: 0.279361
 

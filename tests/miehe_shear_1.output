@@ -17,6 +17,7 @@ Lame mu:           80770
 Lame lambda:       121150
 
 Write solution 0
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00000.visit
 
 
 =======================================================================
@@ -32,6 +33,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 0 time 0.001 bulk energy: 0.0322837 crack energy: 8.57737e-05  Load x: 64.911
 Write solution 1
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00001.visit
 
 
 =======================================================================
@@ -48,6 +50,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 1 time 0.002 bulk energy: 0.128448 crack energy: 0.00036481  Load x: 129.566
 Write solution 2
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00002.visit
 
 
 =======================================================================
@@ -63,6 +66,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 2 time 0.003 bulk energy: 0.285204 crack energy: 0.00183238  Load x: 193.813
 Write solution 3
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00003.visit
 
 
 =======================================================================
@@ -78,6 +82,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 3 time 0.004 bulk energy: 0.497561 crack energy: 0.0058171  Load x: 257.017
 Write solution 4
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00004.visit
 
 
 =======================================================================
@@ -93,6 +98,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 4 time 0.005 bulk energy: 0.758575 crack energy: 0.0142713  Load x: 318.969
 Write solution 5
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00005.visit
 
 
 =======================================================================
@@ -108,6 +114,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 5 time 0.006 bulk energy: 1.05935 crack energy: 0.0298397  Load x: 379.169
 Write solution 6
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00006.visit
 
 
 =======================================================================
@@ -138,6 +145,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 6 time 0.007 bulk energy: 1.38613 crack energy: 0.0560609  Load x: 436.2
 Write solution 7
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00007.visit
 
 
 =======================================================================
@@ -168,6 +176,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 7 time 0.008 bulk energy: 1.71428 crack energy: 0.0987655  Load x: 486.54
 Write solution 8
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00008.visit
 
 
 =======================================================================
@@ -198,6 +207,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 8 time 0.009 bulk energy: 2.04198 crack energy: 0.168354  Load x: 533.065
 Write solution 9
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00009.visit
 
 
 =======================================================================
@@ -228,6 +238,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 9 time 0.01 bulk energy: 2.3282 crack energy: 0.281846  Load x: 570.671
 Write solution 10
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00010.visit
 
 
 =======================================================================
@@ -266,6 +277,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 10 time 0.011 bulk energy: 2.50307 crack energy: 0.476857  Load x: 590.289
 Write solution 11
+	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00011.visit
 
 Finishing time step loop: 0.223212
 
