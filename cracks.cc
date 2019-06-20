@@ -2,13 +2,18 @@
   This code is licensed under the "GNU GPL version 2 or later". See
   LICENSE file or https://www.gnu.org/licenses/gpl-2.0.html
 
-  Copyright 2013-2015: Thomas Wick and Timo Heister
+  Copyright 2013-2019: Thomas Wick and Timo Heister
 */
 
-// Geomechanics: Crack with phase-field
-// monolithic approach and a primal dual active set strategy
-// Predictor-corrector mesh adaptivity
-// 2d code version
+// Main features of the program
+// ----------------------------
+// 1. Geomechanics: Crack with phase-field
+// 2. Monolithic approach with extrapolation in time of
+//    the phase-field variable in the u-equation
+// 3. Primal dual active set strategy to treat
+//    crack irreversibility constraint
+// 4. Predictor-corrector mesh adaptivity
+// 5. Parallel computing using MPI, p4est, and trilinos
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
@@ -3025,7 +3030,6 @@ FracturePhaseFieldProblem<dim>::output_results () const
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
 
-      std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
       unsigned int cellindex = 0;
       for (; cell != endc; ++cell, ++cellindex)
         if (cell->is_locally_owned())
@@ -4268,14 +4272,21 @@ FracturePhaseFieldProblem<dim>::run ()
                 partition_relevant);
               rel_solution = solution;
 
-              ComponentSelectFunction<dim> value_select (dim, dim+1);
-              VectorTools::integrate_difference (dof_handler,
-                                                 rel_solution,
-                                                 exact,
-                                                 error,
-                                                 QGauss<dim>(fe.degree+2),
-                                                 VectorTools::L2_norm,
-                                                 &value_select);
+              if (test_case == TestCase::sneddon_2d)
+                {
+                  ExactPhiSneddon<dim> exact(alpha_eps);
+                  ComponentSelectFunction<dim> value_select (dim, dim+1); // phi
+                  VectorTools::integrate_difference (dof_handler,
+                                                     rel_solution,
+                                                     exact,
+                                                     error,
+                                                     QGauss<dim>(fe.degree+2),
+                                                     VectorTools::L2_norm,
+                                                     &value_select);
+                }
+              else
+                AssertThrow(false, ExcNotImplemented());
+
               const double local_error = error.l2_norm();
               const double L2_error =  std::sqrt( Utilities::MPI::sum(local_error * local_error, mpi_com));
               pcout << "phi_L2_error: " << L2_error << " h: " << min_cell_diameter << std::endl;
