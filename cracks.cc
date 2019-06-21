@@ -217,6 +217,8 @@ namespace Tensors
     Tensor<1, dim> grad_pf;
     grad_pf[0] = old_solution_grads[q][dim][0];
     grad_pf[1] = old_solution_grads[q][dim][1];
+    if (dim == 3)
+      grad_pf[2] = old_solution_grads[q][dim][2];
 
     return grad_pf;
   }
@@ -227,13 +229,24 @@ namespace Tensors
     unsigned int q,
     const std::vector<std::vector<Tensor<1, dim> > > &old_solution_grads)
   {
-    Tensor<2, dim> structure_continuation;
-    structure_continuation[0][0] = old_solution_grads[q][0][0];
-    structure_continuation[0][1] = old_solution_grads[q][0][1];
-    structure_continuation[1][0] = old_solution_grads[q][1][0];
-    structure_continuation[1][1] = old_solution_grads[q][1][1];
+    Tensor<2,dim> grad_u;
+    grad_u[0][0] =  old_solution_grads[q][0][0];
+    grad_u[0][1] =  old_solution_grads[q][0][1];
 
-    return structure_continuation;
+    grad_u[1][0] =  old_solution_grads[q][1][0];
+    grad_u[1][1] =  old_solution_grads[q][1][1];
+    if (dim == 3)
+      {
+        grad_u[0][2] =  old_solution_grads[q][0][2];
+
+        grad_u[1][2] =  old_solution_grads[q][1][2];
+
+        grad_u[2][0] =  old_solution_grads[q][2][0];
+        grad_u[2][1] =  old_solution_grads[q][2][1];
+        grad_u[2][2] =  old_solution_grads[q][2][2];
+      }
+
+    return grad_u;
   }
 
   template <int dim>
@@ -242,9 +255,9 @@ namespace Tensors
   {
     Tensor<2, dim> identity;
     identity[0][0] = 1.0;
-    identity[0][1] = 0.0;
-    identity[1][0] = 0.0;
     identity[1][1] = 1.0;
+    if (dim == 3)
+      identity[2][2] = 1.0;
 
     return identity;
   }
@@ -258,6 +271,8 @@ namespace Tensors
     Tensor<1, dim> u;
     u[0] = old_solution_values[q](0);
     u[1] = old_solution_values[q](1);
+    if (dim == 3)
+      u[2] = old_solution_values[q](2);
 
     return u;
   }
@@ -270,6 +285,25 @@ namespace Tensors
     Tensor<1, dim> tmp;
     tmp[0] = phi_i_u[0];
     tmp[1] = phi_i_u[1];
+    if (dim == 3)
+      tmp[2] = phi_i_u[2];
+    return tmp;
+  }
+
+  template <int dim>
+  inline
+  double
+  get_divergence_u (const Tensor<2,dim> grad_u)
+  {
+    double tmp;
+    if (dim == 2)
+      {
+        tmp = grad_u[0][0] + grad_u[1][1];
+      }
+    else if (dim == 3)
+      {
+        tmp = grad_u[0][0] + grad_u[1][1] + grad_u[2][2];
+      }
 
     return tmp;
   }
@@ -794,8 +828,7 @@ class FracturePhaseFieldProblem
 {
   public:
 
-    FracturePhaseFieldProblem (
-      const unsigned int degree, ParameterHandler &);
+    FracturePhaseFieldProblem (ParameterHandler &);
     void
     run ();
     static void
@@ -863,7 +896,7 @@ class FracturePhaseFieldProblem
 
     MPI_Comm mpi_com;
 
-    const unsigned int degree;
+    unsigned int degree;
     ParameterHandler &prm;
 
     parallel::distributed::Triangulation<dim> triangulation;
@@ -965,14 +998,11 @@ class FracturePhaseFieldProblem
 // The constructor of this class is comparable
 // to other tutorials steps, e.g., step-22, and step-31.
 template <int dim>
-FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (
-  const unsigned int degree, ParameterHandler &param)
+FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (ParameterHandler &param)
   :
   mpi_com(MPI_COMM_WORLD),
-  degree(degree),
   prm(param),
   triangulation(mpi_com),
-
   fe(FE_Q<dim>(degree), dim, FE_Q<dim>(degree), 1),
   dof_handler(triangulation),
 
@@ -991,6 +1021,12 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
 {
   prm.enter_subsection("Global parameters");
   {
+    prm.declare_entry("Dimension", "2",
+                      Patterns::Integer(0));
+
+    prm.declare_entry("FE degree", "1",
+                      Patterns::Integer(1));
+
     prm.declare_entry("Global pre-refinement steps", "1",
                       Patterns::Integer(0));
 
@@ -1093,6 +1129,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 {
   // Get parameters from file
   prm.enter_subsection("Global parameters");
+  degree = prm.get_integer("FE degree");
   n_global_pre_refine = prm.get_integer("Global pre-refinement steps");
   n_local_pre_refine = prm.get_integer("Local pre-refinement steps");
   n_refinement_cycles = prm.get_integer("Adaptive refinement cycles");
@@ -2015,11 +2052,9 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
               const Tensor<1,dim> grad_pf = Tensors
                                             ::get_grad_pf<dim> (q, old_solution_grads);
 
-              const double divergence_u = old_solution_grads[q][0][0] +
-                                          old_solution_grads[q][1][1];
+              const double divergence_u = Tensors::get_divergence_u<dim> (grad_u);
 
-              const Tensor<2,dim> Identity = Tensors
-                                             ::get_Identity<dim> ();
+              const Tensor<2,dim> Identity = Tensors::get_Identity<dim> ();
 
               const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
               const double tr_E = trace(E);
@@ -2053,6 +2088,9 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                     const Tensor<2, dim> E_LinU = 0.5
                                                   * (phi_i_grads_u[i] + transpose(phi_i_grads_u[i]));
                     const double tr_E_LinU = trace(E_LinU);
+
+                    const double divergence_u_LinU = Tensors
+                                                     ::get_divergence_u<dim> (phi_i_grads_u[i]);
 
                     Tensor<2,dim> stress_term_LinU;
                     stress_term_LinU = lame_coefficient_lambda * tr_E_LinU * Identity
@@ -2111,8 +2149,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                + G_c * alpha_eps * phi_i_grads_pf[i] * phi_i_grads_pf[j]
                                // Pressure terms
                                - 2.0 * (alpha_biot - 1.0) * current_pressure *
-                               (pf * (phi_i_grads_u[i][0][0] + phi_i_grads_u[i][1][1])
-                                + phi_i_pf[i] * divergence_u) * phi_i_pf[j]
+                               (pf * divergence_u_LinU + phi_i_pf[i] * divergence_u) * phi_i_pf[j]
                               ) * fe_values.JxW(q);
                           }
 
@@ -2130,14 +2167,15 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                     {
                       const Tensor<2, dim> phi_i_grads_u =
                         fe_values[displacements].gradient(i, q);
-
+                      const double divergence_u_LinU = Tensors
+                                                       ::get_divergence_u<dim> (phi_i_grads_u);
                       // Solid
                       local_rhs(i) -=
                         (scalar_product(((1.0-constant_k) * pf_extra * pf_extra + constant_k) *
                                         stress_term_plus, phi_i_grads_u)
                          +  decompose_stress_rhs * scalar_product(stress_term_minus, phi_i_grads_u)
                          // Pressure terms
-                         - (alpha_biot - 1.0) * current_pressure * pf_extra * pf_extra * (phi_i_grads_u[0][0] + phi_i_grads_u[1][1])
+                         - (alpha_biot - 1.0) * current_pressure * pf_extra * pf_extra * divergence_u_LinU
                         ) * fe_values.JxW(q);
 
                     }
@@ -3012,6 +3050,8 @@ FracturePhaseFieldProblem<dim>::output_results () const
     std::vector<std::string> solution_names;
     solution_names.push_back("displacement_x");
     solution_names.push_back("displacement_y");
+    if (dim == 3)
+      solution_names.push_back("displacement_z");
     solution_names.push_back("phasefieldagain");
     std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(
       dim+1, DataComponentInterpretation::component_is_scalar);
@@ -4394,8 +4434,26 @@ main (
           return 0;
         }
 
-      FracturePhaseFieldProblem<2> fracture_problem(1, prm);
-      fracture_problem.run();
+      prm.enter_subsection("Global parameters");
+      unsigned int problem_dimension = prm.get_integer("Dimension");
+      prm.leave_subsection();
+
+      if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+        std::cout << "Problem dimension: " << problem_dimension << std::endl;
+
+      if (problem_dimension == 2)
+        {
+          FracturePhaseFieldProblem<2> fracture_problem(prm);
+          fracture_problem.run();
+        }
+      else if (problem_dimension == 3)
+        {
+          FracturePhaseFieldProblem<3> fracture_problem(prm);
+          fracture_problem.run();
+        }
+      else AssertThrow(false, ExcNotImplemented());
+
+
     }
   catch (std::exception &exc)
     {
