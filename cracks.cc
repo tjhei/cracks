@@ -822,7 +822,104 @@ BoundaryThreePoint<dim>::vector_value (const Point<dim> &p,
 }
 
 
-// Main program
+
+template <int dim>
+struct Introspection
+{
+  Introspection(ParameterHandler &prm);
+
+  unsigned int displacement_degree;
+
+  unsigned int n_components;
+  unsigned int n_blocks;
+
+  struct ComponentMasks
+  {
+    ComponentMask displacements;
+    ComponentMask displacement[dim];
+    ComponentMask phase_field;
+  };
+  ComponentMasks component_masks;
+
+  struct ComponentIndices
+  {
+    unsigned int displacement[dim];
+    unsigned int velocity[dim];
+    unsigned int phase_field;
+  };
+  ComponentIndices component_indices;
+
+  struct Extractors
+  {
+    FEValuesExtractors::Vector displacement;
+    FEValuesExtractors::Vector velocity;
+    FEValuesExtractors::Scalar phase_field;
+  };
+  Extractors extractors;
+
+  std::vector<unsigned int> components_to_blocks;
+
+  std::vector<const FiniteElement<dim,dim>*> fes;
+  std::vector<unsigned int> multiplicities;
+
+};
+
+template <int dim>
+Introspection<dim>::Introspection(ParameterHandler &prm)
+{
+  prm.enter_subsection("Global parameters");
+  const unsigned int degree = prm.get_integer("FE degree");
+  this->displacement_degree = degree;
+  prm.leave_subsection();
+  prm.enter_subsection("Solver parameters");
+  const bool direct_solver = prm.get_bool("Use Direct Inner Solver");
+  prm.leave_subsection();
+
+
+  fes.push_back(new FE_Q<dim>(degree));
+  multiplicities.push_back(dim);
+  fes.push_back(new FE_Q<dim>(degree));
+  multiplicities.push_back(1);
+
+  n_components = dim + 1;
+  if (direct_solver)
+    n_blocks = 1;
+  else
+    n_blocks = 1 + 1;
+
+  {
+    unsigned int c = 0;
+    for (unsigned int d=0; d<dim; ++d)
+      component_indices.displacement[d] = c++;
+    component_indices.phase_field = c++;
+  }
+
+  {
+    component_masks.displacements = ComponentMask(n_components, false);
+    for (unsigned int d=0; d<dim; ++d)
+      {
+        component_masks.displacement[d] = ComponentMask(n_components, false);
+        component_masks.displacement[d].set(d, true);
+        component_masks.displacements.set(d, true);
+      }
+
+    component_masks.phase_field = ComponentMask(n_components, false);
+    component_masks.phase_field.set(component_indices.phase_field, true);
+  }
+  {
+    extractors.displacement = FEValuesExtractors::Vector(component_indices.displacement[0]);
+    extractors.phase_field = FEValuesExtractors::Scalar(component_indices.phase_field);
+  }
+  {
+    components_to_blocks.resize(n_components, 0);
+    unsigned int block = 0;
+    block += direct_solver ? 0 : 1;
+    components_to_blocks[component_indices.phase_field] = block;
+  }
+}
+
+
+
 template <int dim>
 class FracturePhaseFieldProblem
 {
@@ -896,7 +993,8 @@ class FracturePhaseFieldProblem
 
     MPI_Comm mpi_com;
 
-    unsigned int degree;
+    Introspection<dim> introspection;
+
     ParameterHandler &prm;
 
     parallel::distributed::Triangulation<dim> triangulation;
@@ -995,15 +1093,16 @@ class FracturePhaseFieldProblem
     TableHandler statistics;
 };
 
-// The constructor of this class is comparable
-// to other tutorials steps, e.g., step-22, and step-31.
+
+
 template <int dim>
 FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (ParameterHandler &param)
   :
   mpi_com(MPI_COMM_WORLD),
+  introspection(param),
   prm(param),
   triangulation(mpi_com),
-  fe(FE_Q<dim>(degree), dim, FE_Q<dim>(degree), 1),
+  fe(introspection.fes, introspection.multiplicities),
   dof_handler(triangulation),
 
   pcout(std::cout, (Utilities::MPI::this_mpi_process(mpi_com) == 0)),
@@ -1129,7 +1228,6 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 {
   // Get parameters from file
   prm.enter_subsection("Global parameters");
-  degree = prm.get_integer("FE degree");
   n_global_pre_refine = prm.get_integer("Global pre-refinement steps");
   n_local_pre_refine = prm.get_integer("Local pre-refinement steps");
   n_refinement_cycles = prm.get_integer("Adaptive refinement cycles");
@@ -1924,7 +2022,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
     partition_relevant);
   rel_old_old_solution = old_old_solution;
 
-  QGauss<dim> quadrature_formula(degree + 2);
+  QGauss<dim> quadrature_formula(fe.degree + 2);
 
   FEValues<dim> fe_values(fe, quadrature_formula,
                           update_values | update_quadrature_points | update_JxW_values
@@ -2286,8 +2384,7 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
 {
   diag_mass = 0;
 
-  QGaussLobatto<dim> quadrature_formula(degree + 1);
-  //QGauss<dim> quadrature_formula(degree + 2);
+  QGaussLobatto<dim> quadrature_formula(fe.degree + 1);
 
   FEValues<dim> fe_values(fe, quadrature_formula,
                           update_values | update_quadrature_points | update_JxW_values
@@ -3447,7 +3544,7 @@ FracturePhaseFieldProblem<dim>::compute_energy()
   double local_bulk_energy = 0.0;
   double local_crack_energy = 0.0;
 
-  const QGauss<dim> quadrature_formula(degree+2);
+  const QGauss<dim> quadrature_formula(fe.degree+2);
   const unsigned int n_q_points = quadrature_formula.size();
 
   FEValues<dim> fe_values(fe, quadrature_formula,
@@ -3900,7 +3997,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
 
       // estimate displacement:
       KellyErrorEstimator<dim>::estimate (dof_handler,
-                                          QGauss<dim-1>(degree+2),
+                                          QGauss<dim-1>(fe.degree+2),
                                           typename FunctionMap<dim>::type(),
                                           relevant_solution,
                                           estimated_error_per_cell,
