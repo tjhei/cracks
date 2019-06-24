@@ -17,6 +17,7 @@ Lame mu:           8000
 Lame lambda:       12000
 
 Write solution 0
+	as output-threepoint_1-np2/solution_tp_00000.visit
 
 
 =======================================================================
@@ -32,6 +33,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 0 time 0.005 bulk energy: 0.0110312 crack energy: 5.03491e-05  P11: 8.20409 PStress: 0.000508479
 Write solution 1
+	as output-threepoint_1-np2/solution_tp_00001.visit
 
 
 =======================================================================
@@ -49,6 +51,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 1 time 0.01 bulk energy: 0.0437771 crack energy: 0.000238815  P11: 15.8262 PStress: 0.00100935
 Write solution 2
+	as output-threepoint_1-np2/solution_tp_00002.visit
 
 
 =======================================================================
@@ -66,6 +69,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 2 time 0.015 bulk energy: 0.0968276 crack energy: 0.00114633  P11: 24.0067 PStress: 0.00149059
 Write solution 3
+	as output-threepoint_1-np2/solution_tp_00003.visit
 
 
 =======================================================================
@@ -82,6 +86,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 3 time 0.02 bulk energy: 0.167347 crack energy: 0.00382448  P11: 31.2408 PStress: 0.00193301
 Write solution 4
+	as output-threepoint_1-np2/solution_tp_00004.visit
 
 
 =======================================================================
@@ -97,6 +102,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 4 time 0.025 bulk energy: 0.250962 crack energy: 0.0101618  P11: 37.409 PStress: 0.00232195
 Write solution 5
+	as output-threepoint_1-np2/solution_tp_00005.visit
 
 
 =======================================================================
@@ -112,6 +118,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 5 time 0.03 bulk energy: 0.340422 crack energy: 0.0238955  P11: 42.5056 PStress: 0.00262118
 Write solution 6
+	as output-threepoint_1-np2/solution_tp_00006.visit
 
 
 =======================================================================
@@ -127,6 +134,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 6 time 0.035 bulk energy: 0.421071 crack energy: 0.0537582  P11: 45.9175 PStress: 0.00275701
 Write solution 7
+	as output-threepoint_1-np2/solution_tp_00007.visit
 
 
 =======================================================================
@@ -161,6 +169,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 7 time 0.04 bulk energy: 0.445505 crack energy: 0.121808  P11: 45.7943 PStress: 0.00243689
 Write solution 8
+	as output-threepoint_1-np2/solution_tp_00008.visit
 
 
 =======================================================================
@@ -198,6 +207,7 @@ It.	#A.Set	Residual	Reduction	LSrch	#LinIts
 
 No 8 time 0.045 bulk energy: 0.31501 crack energy: 0.253812  P11: 37.5968 PStress: 0.00088921
 Write solution 9
+	as output-threepoint_1-np2/solution_tp_00009.visit
 
 Finishing time step loop: 0.35967
 

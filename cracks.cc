@@ -3122,6 +3122,8 @@ FracturePhaseFieldProblem<dim>::output_results () const
       std::ofstream global_visit_master((output_folder + "/solution.visit").c_str());
       DataOutBase::write_visit_record(global_visit_master,
                                       output_file_names_by_timestep);
+
+      pcout << "\tas " << visit_master_filename << std::endl;
     }
 }
 
