@@ -3217,21 +3217,6 @@ FracturePhaseFieldProblem<dim>::output_results () const
            << Utilities::int_to_string(triangulation.locally_owned_subdomain(), 4)
            << ".vtu";
 
-  if (Utilities::MPI::this_mpi_process(mpi_com) == 0)
-    {
-      // create output folder on rank 0 if needed
-      const mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
-      int mkdir_return_value = mkdir(output_folder.c_str(), mode);
-
-      if (0!=mkdir_return_value && errno != EEXIST)
-        {
-          AssertThrow(false, ExcMessage("Can not create output directory"));
-        }
-    }
-  // make sure the directory is created before anyone continues
-  MPI_Barrier(mpi_com);
-
-
   std::ofstream output(filename.str().c_str());
   data_out.write_vtu(output);
 
@@ -4515,11 +4500,27 @@ main (
             {
               // generate parameters.prm in the output directory:
               prm.enter_subsection("Global parameters");
-              std::ofstream out((prm.get("Output directory") + "/parameters.prm").c_str());
+              const std::string output_folder = prm.get("Output directory");
+              std::ofstream out((output_folder + "/parameters.prm").c_str());
               prm.leave_subsection();
+
+              // create output folder (only on rank 0) if needed
+              {
+                const mode_t mode = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+                int mkdir_return_value = mkdir(output_folder.c_str(), mode);
+
+                if (0!=mkdir_return_value && errno != EEXIST)
+                  {
+                    AssertThrow(false, ExcMessage("Can not create output directory"));
+                  }
+              }
+
               prm.print_parameters (out,
                                     ParameterHandler::Text);
             }
+
+          // make sure the directory is created before anyone continues
+          MPI_Barrier(MPI_COMM_WORLD);
         }
       else
         {
