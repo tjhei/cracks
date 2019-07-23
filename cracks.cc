@@ -4501,7 +4501,6 @@ main (
               // generate parameters.prm in the output directory:
               prm.enter_subsection("Global parameters");
               const std::string output_folder = prm.get("Output directory");
-              std::ofstream out((output_folder + "/parameters.prm").c_str());
               prm.leave_subsection();
 
               // create output folder (only on rank 0) if needed
@@ -4515,6 +4514,7 @@ main (
                   }
               }
 
+              std::ofstream out((output_folder + "/parameters.prm").c_str());
               prm.print_parameters (out,
                                     ParameterHandler::Text);
             }
