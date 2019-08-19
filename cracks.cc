@@ -2757,7 +2757,7 @@ FracturePhaseFieldProblem<dim>::solve ()
 template <int dim>
 double FracturePhaseFieldProblem<dim>::newton_active_set()
 {
-  pcout << "It.\t#A.Set\tResidual\tReduction\tLSrch\t#LinIts" << std::endl;
+  pcout << "It.\t#A.Set\t#CycDoF\tResidual\tReduction\tLSrch\t#LinIts" << std::endl;
 
   LA::MPI::BlockVector residual_relevant(partition_relevant);
 
@@ -2779,6 +2779,10 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
   active_set.clear();
   active_set.set_size(dof_handler.n_dofs());
 
+  // map global_dof_idx -> number of times it switched from inactive to active
+  // to detect cycles
+  std::map<unsigned int, unsigned int> cycle_counter;
+
   LA::MPI::BlockVector old_solution_relevant(partition_relevant);
   old_solution_relevant = old_solution;
 
@@ -2791,6 +2795,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       pcout << it << std::flush;
 
       IndexSet active_set_old = active_set;
+      unsigned int n_cycling_dofs = 0;
 
       {
         // compute new active set
@@ -2832,9 +2837,19 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
                 double massm = diag_mass_relevant(idx);
 
                 double gap = new_value - old_value;
+                double active_set_tolarance = 0.0;
 
-                if ( residual_relevant(idx)/massm + c * (gap) <= 0)
+                // consider a DoF as cycling after this many inactive->active switches
+                const unsigned int n_cycling_threshold = 5;
+
+                if ( residual_relevant(idx)/massm + c * (gap) <= active_set_tolarance
+                     &&
+                     (cycle_counter[idx]<n_cycling_threshold)
+                   )
                   continue;
+
+                if (cycle_counter[idx]>=n_cycling_threshold)
+                  ++n_cycling_dofs;
 
                 // now idx is in the active set
                 constraints_update.add_line(idx);
@@ -2853,9 +2868,19 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
 
         pcout << "\t"
               << Utilities::MPI::sum(owned_active_set_dofs, mpi_com)
+              << "\t"
+              << Utilities::MPI::sum(n_cycling_dofs, mpi_com)
               << std::flush;
 
 
+      }
+
+      {
+        // cycle detection: increment a counter for each DoF that became active
+        IndexSet i_before = active_set_old;
+        i_before.subtract_set(active_set);
+        for (IndexSet::ElementIterator it = i_before.begin(); it != i_before.end(); ++it)
+          ++(cycle_counter[*it]);
       }
 
       set_newton_bc();
