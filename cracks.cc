@@ -3229,9 +3229,9 @@ FracturePhaseFieldProblem<dim>::output_results () const
           filename_basis + Utilities::int_to_string(refinement_cycle, 5)
           + "." + Utilities::int_to_string(i, 4) + ".vtu");
 
-      std::ofstream master_output(
-        (output_folder + "/" + filename_basis + Utilities::int_to_string(refinement_cycle, 5)
-         + ".pvtu").c_str());
+      std::string master_name = filename_basis + Utilities::int_to_string(refinement_cycle, 5)
+                                + ".pvtu";
+      std::ofstream master_output((output_folder + "/" + master_name).c_str());
       data_out.write_pvtu_record(master_output, filenames);
 
       std::string visit_master_filename = (output_folder + "/" + filename_basis
@@ -3246,6 +3246,11 @@ FracturePhaseFieldProblem<dim>::output_results () const
                                       output_file_names_by_timestep);
 
       pcout << "\tas " << visit_master_filename << std::endl;
+
+      std::ofstream global_paraview_master((output_folder + "/solution.pvd").c_str());
+      static std::vector< std::pair< double, std::string > > times_and_names;
+      times_and_names.emplace_back (time, master_name);
+      DataOutBase::write_pvd_record(global_paraview_master, times_and_names);
     }
 }
 
