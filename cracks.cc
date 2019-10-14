@@ -1054,21 +1054,13 @@ class FracturePhaseFieldProblem
 
     bool direct_solver;
 
-    double force_structure_x_biot, force_structure_y_biot;
-    double force_structure_x, force_structure_y;
-
     // Biot parameters
     double c_biot, alpha_biot, lame_coefficient_biot, K_biot, density_biot;
 
-    double gravity_x, gravity_y, volume_source, traction_x, traction_y,
-           traction_x_biot, traction_y_biot;
-
     // Structure parameters
-    double density_structure;
     double lame_coefficient_mu, lame_coefficient_lambda, poisson_ratio_nu;
 
     // Other parameters to control the fluid mesh motion
-    double cell_diameter;
 
     FunctionParser<1> func_pressure;
     double constant_k, alpha_eps,
@@ -1173,8 +1165,6 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("Pressure", "0.0", Patterns::Anything());
 
     prm.declare_entry("Fracture toughness G_c", "0.0", Patterns::Double(0));
-
-    prm.declare_entry("Density solid", "0.0", Patterns::Double(0));
 
     prm.declare_entry("Poisson ratio nu", "0.0", Patterns::Double(0));
 
@@ -1305,7 +1295,6 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
                             FunctionParser<1>::ConstMap());
 
   G_c = prm.get_double("Fracture toughness G_c");
-  density_structure = prm.get_double("Density solid");
 
   // In all examples chosen as 0. Will be non-zero
   // if a Darcy fluid is computed
