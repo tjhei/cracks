@@ -29,7 +29,6 @@ subsection Problem dependent parameters
   # Material and problem-rhs parameters
   set Pressure				= 1.0e-3
   set Fracture toughness G_c		= 1.0
-  set Density solid	 		= 1.0
   set Poisson ratio nu			= 0.2
   set E modulus	    			= 1.0
 end 
