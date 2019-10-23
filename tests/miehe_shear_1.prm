@@ -28,7 +28,6 @@ subsection Problem dependent parameters
   # 0.25 * pow(h,0.5)
   set Eps reg				= 2*h #0.125*pow(h,0.25)
   set Gamma penalization		= 0.0
-  set alpha time			= 0.0
 
   # Material and problem-rhs parameters
   set Pressure				= 0.0
