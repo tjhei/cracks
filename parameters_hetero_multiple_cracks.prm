@@ -31,7 +31,6 @@ subsection Problem dependent parameters
   set Fracture toughness G_c		= 1.0
   set Poisson ratio nu			= 0.2
   set E modulus	    			= 1e4
-  set alpha time = 0.0
 
 end 
 

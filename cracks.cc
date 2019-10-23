@@ -1160,8 +1160,6 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
 
     prm.declare_entry("Gamma penalization", "0.0", Patterns::Double(0));
 
-    prm.declare_entry("alpha time", "0.0", Patterns::Double(0));
-
     prm.declare_entry("Pressure", "0.0", Patterns::Anything());
 
     prm.declare_entry("Fracture toughness G_c", "0.0", Patterns::Double(0));
