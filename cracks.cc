@@ -37,6 +37,11 @@ using ConstraintMatrix = dealii::AffineConstraints<double>;
 #  include <deal.II/grid/tria_boundary_lib.h>
 #endif
 
+// This makes IDEs like QtCreator happy (note that this is defined in cmake):
+#ifndef SOURCE_DIR
+#define SOURCE_DIR ""
+#endif
+
 #include <deal.II/lac/solver_gmres.h>
 
 #include <deal.II/grid/tria.h>
