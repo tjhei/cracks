@@ -87,6 +87,29 @@ namespace LA
 
 using namespace dealii;
 
+namespace compatibility
+{
+  /**
+   * Split the set of DoFs (typically locally owned or relevant) in @p whole_set into blocks
+   * given by the @p dofs_per_block structure.
+   */
+  void split_by_block (const std::vector<types::global_dof_index> &dofs_per_block,
+                       const IndexSet &whole_set,
+                       std::vector<IndexSet> &partitioned)
+  {
+    const unsigned int n_blocks = dofs_per_block.size();
+    partitioned.clear();
+
+    partitioned.resize(n_blocks);
+    types::global_dof_index start = 0;
+    for (unsigned int i=0; i<n_blocks; ++i)
+      {
+        partitioned[i] = whole_set.get_view(start, start + dofs_per_block[i]);
+        start += dofs_per_block[i];
+      }
+  }
+}
+
 
 // For Example 3 (multiple cracks in a heterogenous medium)
 // reads .pgm file and returns it as floating point values
@@ -1430,14 +1453,11 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 }
 
 
-// This function is similar to many deal.II tuturial steps.
+
 template <int dim>
 void
 FracturePhaseFieldProblem<dim>::setup_system ()
 {
-  // We set runtime parameters to drive the problem.
-  // These parameters could also be read from a parameter file that
-  // can be handled by the ParameterHandler object (see step-19)
   system_pde_matrix.clear();
 
   dof_handler.distribute_dofs(fe);
@@ -1451,37 +1471,28 @@ FracturePhaseFieldProblem<dim>::setup_system ()
   DoFTools::extract_constant_modes(dof_handler,
                                    fe.component_mask(extract_displacement), constant_modes);
 
-  std::vector<types::global_dof_index> dofs_per_block (2);
-  DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, sub_blocks);
-  const unsigned int n_solid = dofs_per_block[0];
-  const unsigned int n_phase = dofs_per_block[1];
-  pcout << std::endl;
-  pcout << "DoFs: " << n_solid << " solid + " << n_phase << " phase = "
-        << n_solid + n_phase << std::endl;
+  {
+    // extract DoF counts for printing statistics:
+    std::vector<types::global_dof_index> dofs_per_var (2);
+    DoFTools::count_dofs_per_block (dof_handler, dofs_per_var, sub_blocks);
+    const unsigned int n_solid = dofs_per_var[0];
+    const unsigned int n_phase = dofs_per_var[1];
+    pcout << std::endl;
+    pcout << "DoFs: " << n_solid << " solid + " << n_phase << " phase"
+          << " = " << dof_handler.n_dofs() << std::endl;
+  }
+
+  std::vector<types::global_dof_index> dofs_per_block (introspection.n_blocks);
+  DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, introspection.components_to_blocks);
 
   partition.clear();
-  if (direct_solver)
-    {
-      partition.push_back(dof_handler.locally_owned_dofs());
-    }
-  else
-    {
-      partition.push_back(dof_handler.locally_owned_dofs().get_view(0,n_solid));
-      partition.push_back(dof_handler.locally_owned_dofs().get_view(n_solid,n_solid+n_phase));
-    }
+  compatibility::split_by_block(dofs_per_block, dof_handler.locally_owned_dofs(), partition);
 
   IndexSet relevant_set;
   DoFTools::extract_locally_relevant_dofs(dof_handler, relevant_set);
+
   partition_relevant.clear();
-  if (direct_solver)
-    {
-      partition_relevant.push_back(relevant_set);
-    }
-  else
-    {
-      partition_relevant.push_back(relevant_set.get_view(0,n_solid));
-      partition_relevant.push_back(relevant_set.get_view(n_solid,n_solid+n_phase));
-    }
+  compatibility::split_by_block(dofs_per_block, relevant_set, partition_relevant);
 
   {
     constraints_hanging_nodes.clear();
