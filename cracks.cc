@@ -1448,14 +1448,11 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 }
 
 
-// This function is similar to many deal.II tuturial steps.
+
 template <int dim>
 void
 FracturePhaseFieldProblem<dim>::setup_system ()
 {
-  // We set runtime parameters to drive the problem.
-  // These parameters could also be read from a parameter file that
-  // can be handled by the ParameterHandler object (see step-19)
   system_pde_matrix.clear();
 
   dof_handler.distribute_dofs(fe);
@@ -1469,14 +1466,19 @@ FracturePhaseFieldProblem<dim>::setup_system ()
   DoFTools::extract_constant_modes(dof_handler,
                                    fe.component_mask(extract_displacement), constant_modes);
 
+  {
+    // extract DoF counts for printing statistics:
+    std::vector<types::global_dof_index> dofs_per_var (2);
+    DoFTools::count_dofs_per_block (dof_handler, dofs_per_var, sub_blocks);
+    const unsigned int n_solid = dofs_per_var[0];
+    const unsigned int n_phase = dofs_per_var[1];
+    pcout << std::endl;
+    pcout << "DoFs: " << n_solid << " solid + " << n_phase << " phase"
+          << " = " << dof_handler.n_dofs() << std::endl;
+  }
+
   std::vector<types::global_dof_index> dofs_per_block (introspection.n_blocks);
   DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, introspection.components_to_blocks);
-
-  const unsigned int n_solid = dofs_per_block[0];
-  const unsigned int n_phase = dofs_per_block[1];
-  pcout << std::endl;
-  pcout << "DoFs: " << n_solid << " solid + " << n_phase << " phase = "
-        << n_solid + n_phase << std::endl;
 
   partition.clear();
   compatibility::split_by_block(dofs_per_block, dof_handler.locally_owned_dofs(), partition);
