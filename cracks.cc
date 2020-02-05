@@ -1462,14 +1462,14 @@ FracturePhaseFieldProblem<dim>::setup_system ()
 
   dof_handler.distribute_dofs(fe);
 
-  std::vector<unsigned int> sub_blocks (dim+1,0);
-  sub_blocks[dim] = 1;
+  std::vector<unsigned int> sub_blocks (introspection.n_components, 0);
+  sub_blocks[introspection.component_indices.phase_field] = 1;
   DoFRenumbering::component_wise (dof_handler, sub_blocks);
 
-  FEValuesExtractors::Vector extract_displacement(0);
   constant_modes.clear();
   DoFTools::extract_constant_modes(dof_handler,
-                                   fe.component_mask(extract_displacement), constant_modes);
+                                   introspection.component_masks.displacements,
+                                   constant_modes);
 
   {
     // extract DoF counts for printing statistics:
@@ -2040,23 +2040,22 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
 
   std::vector<unsigned int> local_dof_indices(dofs_per_cell);
 
-  const FEValuesExtractors::Vector displacements(0);
-  const FEValuesExtractors::Scalar phase_field (dim);
+  // Old Newton values
+  std::vector<Tensor<1, dim> > old_displacement_values(n_q_points);
+  std::vector<Tensor<1, dim> > old_velocity_values(n_q_points);
+  std::vector<double> old_phase_field_values(n_q_points);
 
-  std::vector<Vector<double> > old_solution_values(n_q_points,
-                                                   Vector<double>(dim+1));
+  // Old Newton grads
+  std::vector<Tensor<2,dim> > old_displacement_grads (n_q_points);
+  std::vector<Tensor<1,dim> > old_phase_field_grads (n_q_points);
 
-  std::vector<std::vector<Tensor<1,dim> > > old_solution_grads (n_q_points,
-                                                                std::vector<Tensor<1,dim> > (dim+1));
+  // Old timestep values
+  std::vector<Tensor<1, dim> > old_timestep_displacement_values(n_q_points);
+  std::vector<double> old_timestep_phase_field_values(n_q_points);
+  std::vector<Tensor<1, dim> > old_timestep_velocity_values(n_q_points);
 
-  std::vector<Vector<double> > old_timestep_solution_values(n_q_points,
-                                                            Vector<double>(dim+1));
-
-  std::vector<std::vector<Tensor<1,dim> > > old_timestep_solution_grads (n_q_points,
-                                                                         std::vector<Tensor<1,dim> > (dim+1));
-
-  std::vector<Vector<double> > old_old_timestep_solution_values(n_q_points,
-                                                                Vector<double>(dim+1));
+  std::vector<Tensor<1, dim> > old_old_timestep_displacement_values(n_q_points);
+  std::vector<double> old_old_timestep_phase_field_values(n_q_points);
 
   // Declaring test functions:
   std::vector<Tensor<1, dim> > phi_i_u(dofs_per_cell);
@@ -2092,37 +2091,40 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
         local_rhs = 0;
 
         // Old Newton iteration values
-        fe_values.get_function_values (rel_solution, old_solution_values);
-        fe_values.get_function_gradients (rel_solution, old_solution_grads);
+        fe_values[introspection.extractors.displacement].get_function_values (rel_solution, old_displacement_values);
+        fe_values[introspection.extractors.phase_field].get_function_values (rel_solution, old_phase_field_values);
+
+        fe_values[introspection.extractors.displacement].get_function_gradients (rel_solution, old_displacement_grads);
+        fe_values[introspection.extractors.phase_field].get_function_gradients (rel_solution, old_phase_field_grads);
 
         // Old_timestep_solution values
-        fe_values.get_function_values (rel_old_solution, old_timestep_solution_values);
+        fe_values[introspection.extractors.phase_field].get_function_values (rel_old_solution, old_timestep_phase_field_values);
 
         // Old Old_timestep_solution values
-        fe_values.get_function_values (rel_old_old_solution, old_old_timestep_solution_values);
+        fe_values[introspection.extractors.phase_field].get_function_values (rel_old_old_solution, old_old_timestep_phase_field_values);
 
         {
           for (unsigned int q = 0; q < n_q_points; ++q)
             {
               for (unsigned int k = 0; k < dofs_per_cell; ++k)
                 {
-                  phi_i_u[k]       = fe_values[displacements].value(k, q);
-                  phi_i_grads_u[k] = fe_values[displacements].gradient(k, q);
-                  phi_i_pf[k]       = fe_values[phase_field].value (k, q);
-                  phi_i_grads_pf[k] = fe_values[phase_field].gradient (k, q);
+                  phi_i_u[k]        = fe_values[introspection.extractors.displacement].value(k, q);
+                  phi_i_grads_u[k]  = fe_values[introspection.extractors.displacement].gradient(k, q);
+                  phi_i_pf[k]       = fe_values[introspection.extractors.phase_field].value (k, q);
+                  phi_i_grads_pf[k] = fe_values[introspection.extractors.phase_field].gradient (k, q);
 
                 }
 
               // First, we prepare things coming from the previous Newton
               // iteration...
-              double pf = old_solution_values[q](dim);
-              double old_timestep_pf = old_timestep_solution_values[q](dim);
-              double old_old_timestep_pf = old_old_timestep_solution_values[q](dim);
+              double pf = old_phase_field_values[q];
+              double old_timestep_pf = old_timestep_phase_field_values[q];
+              double old_old_timestep_pf = old_old_timestep_phase_field_values[q];
               if (outer_solver == OuterSolverType::simple_monolithic)
                 {
-                  pf = std::max(0.0,old_solution_values[q](dim));
-                  old_timestep_pf = std::max(0.0,old_timestep_solution_values[q](dim));
-                  old_old_timestep_pf = std::max(0.0,old_old_timestep_solution_values[q](dim));
+                  pf = std::max(0.0, old_phase_field_values[q]);
+                  old_timestep_pf = std::max(0.0,old_timestep_phase_field_values[q]);
+                  old_old_timestep_pf = std::max(0.0,old_old_timestep_phase_field_values[q]);
                 }
 
 
@@ -2147,15 +2149,14 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                 pf_extra = old_timestep_pf;
 
 
-              const Tensor<2,dim> grad_u = Tensors
-                                           ::get_grad_u<dim> (q, old_solution_grads);
+              const Tensor<2,dim> grad_u = old_displacement_grads[q];
+              const Tensor<1,dim> grad_pf = old_phase_field_grads[q];
 
-              const Tensor<1,dim> grad_pf = Tensors
-                                            ::get_grad_pf<dim> (q, old_solution_grads);
+              const double divergence_u = Tensors
+                                          ::get_divergence_u<dim> (grad_u);
 
-              const double divergence_u = Tensors::get_divergence_u<dim> (grad_u);
-
-              const Tensor<2,dim> Identity = Tensors::get_Identity<dim> ();
+              const Tensor<2,dim> Identity = Tensors
+                                             ::get_Identity<dim> ();
 
               const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
               const double tr_E = trace(E);
@@ -2201,7 +2202,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                     Tensor<2,dim> stress_term_minus_LinU;
 
                     const unsigned int comp_i = fe.system_to_component_index(i).first;
-                    if (comp_i == dim)
+                    if (comp_i == introspection.component_indices.phase_field)
                       {
                         stress_term_plus_LinU = 0;
                         stress_term_minus_LinU = 0;
@@ -2235,7 +2236,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                                                  ) * fe_values.JxW(q);
 
                           }
-                        else if (comp_j == dim)
+                        else if (comp_j == introspection.component_indices.phase_field)
                           {
                             // Simple penalization for simple monolithic
                             local_matrix(j,i) += gamma_penal/timestep * 1.0/(cell->diameter() * cell->diameter()) *
@@ -2267,9 +2268,10 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                   if (comp_i < dim)
                     {
                       const Tensor<2, dim> phi_i_grads_u =
-                        fe_values[displacements].gradient(i, q);
+                        fe_values[introspection.extractors.displacement].gradient(i, q);
                       const double divergence_u_LinU = Tensors
                                                        ::get_divergence_u<dim> (phi_i_grads_u);
+
                       // Solid
                       local_rhs(i) -=
                         (scalar_product(((1.0-constant_k) * pf_extra * pf_extra + constant_k) *
@@ -2280,10 +2282,10 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
                         ) * fe_values.JxW(q);
 
                     }
-                  else if (comp_i == dim)
+                  else if (comp_i == introspection.component_indices.phase_field)
                     {
-                      const double phi_i_pf = fe_values[phase_field].value (i, q);
-                      const Tensor<1,dim> phi_i_grads_pf = fe_values[phase_field].gradient (i, q);
+                      const double phi_i_pf = fe_values[introspection.extractors.phase_field].value (i, q);
+                      const Tensor<1,dim> phi_i_grads_pf = fe_values[introspection.extractors.phase_field].gradient (i, q);
 
                       // Simple penalization
                       local_rhs(i) -= gamma_penal/timestep * 1.0/(cell->diameter() * cell->diameter()) *
@@ -2414,7 +2416,7 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
           for (unsigned int i = 0; i < dofs_per_cell; ++i)
             {
               const unsigned int comp_i = fe.system_to_component_index(i).first;
-              if (comp_i != dim)
+              if (comp_i != introspection.component_indices.phase_field)
                 continue; // only look at phase field
 
               local_rhs (i) += fe_values.shape_value(i, q_point) *
@@ -2424,7 +2426,6 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
         cell->get_dof_indices(local_dof_indices);
         for (unsigned int i=0; i<dofs_per_cell; i++)
           diag_mass(local_dof_indices[i]) += local_rhs(i);
-
 
       }
 
@@ -2853,7 +2854,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
                 const unsigned int comp_i = fe.system_to_component_index(i).first;
-                if (comp_i != dim)
+                if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
 
                 const unsigned int idx = local_dof_indices[i];
@@ -3106,7 +3107,7 @@ FracturePhaseFieldProblem<dim>::project_back_phase_field ()
         for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
           {
             const unsigned int comp_i = fe.system_to_component_index(i).first;
-            if (comp_i != dim)
+            if (comp_i != introspection.component_indices.phase_field)
               continue; // only look at phase field
 
             const unsigned int idx = local_dof_indices[i];
@@ -3154,7 +3155,7 @@ FracturePhaseFieldProblem<dim>::output_results () const
       solution_names.push_back("displacement_z");
     solution_names.push_back("phasefieldagain");
     std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(
-      dim+1, DataComponentInterpretation::component_is_scalar);
+      introspection.n_components, DataComponentInterpretation::component_is_scalar);
     data_out.add_data_vector(dof_handler, relevant_solution,
                              solution_names, data_component_interpretation);
   }
@@ -3550,11 +3551,9 @@ FracturePhaseFieldProblem<dim>::compute_energy()
   LA::MPI::BlockVector rel_solution(partition_relevant);
   rel_solution = solution;
 
-  std::vector<Vector<double> > solution_values(n_q_points,
-                                               Vector<double>(dim+1));
-
-  std::vector<std::vector<Tensor<1, dim> > > solution_grads(
-    n_q_points, std::vector<Tensor<1, dim> >(dim+1));
+  std::vector<double> phase_field_values(n_q_points);
+  std::vector<Tensor<1, dim> > phase_field_grads(n_q_points);
+  std::vector<Tensor<2, dim> > displacement_grads(n_q_points);
 
   for (; cell != endc; ++cell)
     if (cell->is_locally_owned())
@@ -3572,20 +3571,19 @@ FracturePhaseFieldProblem<dim>::compute_energy()
                                       / (1.0 - 2 * poisson_ratio_nu);
           }
 
-        fe_values.get_function_values(rel_solution, solution_values);
-        fe_values.get_function_gradients(rel_solution, solution_grads);
+        fe_values[introspection.extractors.phase_field].get_function_values(rel_solution, phase_field_values);
+        fe_values[introspection.extractors.phase_field].get_function_gradients(rel_solution, phase_field_grads);
+        fe_values[introspection.extractors.displacement].get_function_gradients(rel_solution, displacement_grads);
 
         for (unsigned int q = 0; q < n_q_points; ++q)
           {
-            const Tensor<2,dim> grad_u = Tensors
-                                         ::get_grad_u<dim> (q, solution_grads);
-            const Tensor<1,dim> grad_pf = Tensors
-                                          ::get_grad_pf<dim> (q, solution_grads);
+            const Tensor<2,dim> grad_u = displacement_grads[q];
+            const Tensor<1,dim> grad_pf = phase_field_grads[q];
 
             const Tensor<2,dim> E = 0.5 * (grad_u + transpose(grad_u));
             const double tr_E = trace(E);
 
-            const double pf = solution_values[q](dim);
+            const double pf = phase_field_values[q];
 
             const double tr_e_2 = trace(E*E);
 
@@ -3899,7 +3897,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
                 const unsigned int comp_i = fe.system_to_component_index(i).first;
-                if (comp_i != dim)
+                if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
                 if (relevant_solution(local_dof_indices[i])
                     < value_phase_field_for_refinement )
@@ -3938,7 +3936,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
             for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
               {
                 const unsigned int comp_i = fe.system_to_component_index(i).first;
-                if (comp_i != dim)
+                if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
                 if (relevant_solution(local_dof_indices[i])
                     < value_phase_field_for_refinement )
@@ -3972,7 +3970,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
               for (unsigned int i=0; i<fe.dofs_per_cell; ++i)
                 {
                   const unsigned int comp_i = fe.system_to_component_index(i).first;
-                  if (comp_i != dim)
+                  if (comp_i != introspection.component_indices.phase_field)
                     continue; // only look at phase field
                   if (relevant_solution(local_dof_indices[i])
                       < value_phase_field_for_refinement )
