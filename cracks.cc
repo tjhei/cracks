@@ -4471,6 +4471,8 @@ FracturePhaseFieldProblem<dim>::run ()
   pcout << std::resetiosflags(std::ios::floatfield) << std::fixed;
   std::cout.precision(2);
 
+  MPI_Barrier(MPI_COMM_WORLD);
+
   Utilities::System::MemoryStats stats;
   Utilities::System::get_memory_stats(stats);
   pcout << "VMPEAK, Resident in kB: " << stats.VmSize << " " << stats.VmRSS
