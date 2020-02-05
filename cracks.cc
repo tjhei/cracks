@@ -3973,7 +3973,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       // estimate displacement:
       KellyErrorEstimator<dim>::estimate (dof_handler,
                                           QGauss<dim-1>(fe.degree+2),
-                                          typename FunctionMap<dim>::type(),
+                                          std::map<types::boundary_id, const Function<dim> *>(),
                                           relevant_solution,
                                           estimated_error_per_cell,
                                           component_mask,
