@@ -954,23 +954,17 @@ class FracturePhaseFieldProblem
   public:
 
     FracturePhaseFieldProblem (ParameterHandler &);
-    void
-    run ();
-    static void
-    declare_parameters (ParameterHandler &prm);
+    void run ();
+    static void declare_parameters (ParameterHandler &prm);
 
   private:
 
-    void
-    set_runtime_parameters ();
-    void
-    determine_mesh_dependent_parameters();
-    void
-    setup_system ();
-    void
-    assemble_system (bool residual_only=false);
-    void
-    assemble_nl_residual ();
+    void set_runtime_parameters ();
+    void determine_mesh_dependent_parameters();
+    void setup_mesh(Triangulation<dim> &tria);
+    void setup_system ();
+    void assemble_system (bool residual_only=false);
+    void assemble_nl_residual ();
 
     void assemble_diag_mass_matrix();
 
@@ -980,44 +974,34 @@ class FracturePhaseFieldProblem
     void
     set_newton_bc ();
 
-    unsigned int
-    solve ();
+    unsigned int solve ();
 
     double newton_active_set();
 
-    double
-    newton_iteration (
-      const double time);
+    double newton_iteration (const double time);
 
-    double
-    compute_point_value (
+    double compute_point_value (
       const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
       const Point<dim> &p, const unsigned int component) const;
 
     void
     compute_point_stress ();
 
-    void
-    output_results () const;
+    void output_results () const;
 
-    void
-    compute_functional_values ();
+    void compute_functional_values ();
 
     void
     compute_load();
 
     void compute_cod_array ();
 
-    double
-    compute_cod (
-      const double eval_line);
+    double compute_cod(const double eval_line);
 
     double compute_energy();
 
-    bool
-    refine_mesh ();
-    void
-    project_back_phase_field ();
+    bool refine_mesh ();
+    void project_back_phase_field ();
 
     MPI_Comm mpi_com;
 
