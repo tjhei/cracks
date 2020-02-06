@@ -3122,24 +3122,11 @@ FracturePhaseFieldProblem<dim>::output_results () const
   SneddonExactPostProc<dim> exact_sol_sneddon(alpha_eps);
   DataOut<dim> data_out;
   {
-    std::vector<std::string> solution_names(dim, "dis");
-    solution_names.push_back("phi");
+    std::vector<std::string> solution_names(dim, "displacement");
+    solution_names.push_back("phasefield");
     std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
     data_component_interpretation.push_back(DataComponentInterpretation::component_is_scalar);
-    data_out.add_data_vector(dof_handler, relevant_solution,
-                             solution_names, data_component_interpretation);
-  }
-
-  {
-    std::vector<std::string> solution_names;
-    solution_names.push_back("displacement_x");
-    solution_names.push_back("displacement_y");
-    if (dim == 3)
-      solution_names.push_back("displacement_z");
-    solution_names.push_back("phasefieldagain");
-    std::vector<DataComponentInterpretation::DataComponentInterpretation> data_component_interpretation(
-      introspection.n_components, DataComponentInterpretation::component_is_scalar);
     data_out.add_data_vector(dof_handler, relevant_solution,
                              solution_names, data_component_interpretation);
   }
