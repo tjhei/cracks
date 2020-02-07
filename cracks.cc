@@ -346,13 +346,12 @@ template <int dim>
 class InitialValuesSneddon : public Function<dim>
 {
   public:
-    InitialValuesSneddon (
-      const double min_cell_diameter)
+    InitialValuesSneddon (const unsigned int n_components, const double min_cell_diameter)
       :
-      Function<dim>(dim+1)
-    {
-      _min_cell_diameter = min_cell_diameter;
-    }
+      Function<dim>(n_components),
+      n_components (n_components),
+      _min_cell_diameter(min_cell_diameter)
+    {}
 
     virtual double
     value (
@@ -363,6 +362,7 @@ class InitialValuesSneddon : public Function<dim>
       const Point<dim> &p, Vector<double> &value) const;
 
   private:
+    const unsigned int n_components;
     double _min_cell_diameter;
 
 };
@@ -379,7 +379,7 @@ InitialValuesSneddon<dim>::value (
   // Defining the initial crack(s)
   // 0 = crack
   // 1 = no crack
-  if (component == dim)
+  if (component == n_components-1)
     {
       if (((p(0) >= 1.8 - width) && (p(0) <= 2.2 + width))
           && ((p(1) >= bottom) && (p(1) <= top)))
@@ -404,9 +404,9 @@ template <int dim>
 class ExactPhiSneddon : public Function<dim>
 {
   public:
-    ExactPhiSneddon (const double eps_)
+    ExactPhiSneddon (const int n_components, const double eps_)
       :
-      Function<dim>(dim+1),
+      Function<dim>(n_components),
       eps(eps_)
     {
     }
@@ -439,10 +439,10 @@ template <int dim>
 class SneddonExactPostProc : public DataPostprocessorScalar<dim>
 {
   public:
-    SneddonExactPostProc (const double eps)
+    SneddonExactPostProc (const unsigned int n_components, const double eps)
       :
       DataPostprocessorScalar<dim> ("exact_phi", update_quadrature_points),
-      exact(eps)
+      exact(n_components, eps)
     {}
 
     void evaluate_vector_field (const DataPostprocessorInputs::Vector<dim> &input_data,
@@ -462,13 +462,12 @@ template <int dim>
 class InitialValuesMultipleHomo : public Function<dim>
 {
   public:
-    InitialValuesMultipleHomo (
-      const double min_cell_diameter)
+    InitialValuesMultipleHomo (const unsigned int n_components, const double min_cell_diameter)
       :
-      Function<dim>(dim+1)
-    {
-      _min_cell_diameter = min_cell_diameter;
-    }
+      Function<dim> (n_components),
+      n_components (n_components),
+      _min_cell_diameter (min_cell_diameter)
+    {}
 
     virtual double
     value (
@@ -479,8 +478,8 @@ class InitialValuesMultipleHomo : public Function<dim>
       const Point<dim> &p, Vector<double> &value) const;
 
   private:
+    const unsigned int n_components;
     double _min_cell_diameter;
-
 };
 
 template <int dim>
@@ -494,7 +493,7 @@ InitialValuesMultipleHomo<dim>::value (
   // 0 = crack
   // 1 = no crack
   bool example_3 = true;
-  if (component == dim)
+  if (component == n_components-1)
     {
       if (example_3)
         {
@@ -545,13 +544,12 @@ template <int dim>
 class InitialValuesMultipleHet : public Function<dim>
 {
   public:
-    InitialValuesMultipleHet (
-      const double min_cell_diameter)
+    InitialValuesMultipleHet (const unsigned int n_components, const double min_cell_diameter)
       :
-      Function<dim>(dim+1)
-    {
-      _min_cell_diameter = min_cell_diameter;
-    }
+      Function<dim> (n_components),
+      n_components (n_components),
+      _min_cell_diameter (min_cell_diameter)
+    {}
 
     virtual double
     value (
@@ -562,8 +560,8 @@ class InitialValuesMultipleHet : public Function<dim>
       const Point<dim> &p, Vector<double> &value) const;
 
   private:
+    const unsigned int n_components;
     double _min_cell_diameter;
-
 };
 
 template <int dim>
@@ -577,7 +575,7 @@ InitialValuesMultipleHet<dim>::value (
   // 0 = crack
   // 1 = no crack
   bool example_3 = true;
-  if (component == dim)
+  if (component == n_components-1)
     {
       if (example_3)
         {
@@ -620,16 +618,16 @@ InitialValuesMultipleHet<dim>::vector_value (
 
 
 template <int dim>
-class InitialValuesMiehe : public Function<dim>
+class InitialValuesTensionOrShear : public Function<dim>
 {
   public:
-    InitialValuesMiehe (
-      const double min_cell_diameter)
+    InitialValuesTensionOrShear (const unsigned int n_components,
+                                 const double min_cell_diameter)
       :
-      Function<dim>(dim+1)
-    {
-      _min_cell_diameter = min_cell_diameter;
-    }
+      Function<dim> (n_components),
+      n_components (n_components),
+      _min_cell_diameter (min_cell_diameter)
+    {}
 
     virtual double
     value (
@@ -640,19 +638,19 @@ class InitialValuesMiehe : public Function<dim>
       const Point<dim> &p, Vector<double> &value) const;
 
   private:
+    const unsigned int n_components;
     double _min_cell_diameter;
-
 };
 
 template <int dim>
 double
-InitialValuesMiehe<dim>::value (
+InitialValuesTensionOrShear<dim>::value (
   const Point<dim> & /*p*/, const unsigned int component) const
 {
   // Defining the initial crack(s)
   // 0 = crack
   // 1 = no crack
-  if (component == dim)
+  if (component == n_components-1)
     {
       return 1.0;
     }
@@ -662,11 +660,56 @@ InitialValuesMiehe<dim>::value (
 
 template <int dim>
 void
-InitialValuesMiehe<dim>::vector_value (
+InitialValuesTensionOrShear<dim>::vector_value (
   const Point<dim> &p, Vector<double> &values) const
 {
   for (unsigned int comp = 0; comp < this->n_components; ++comp)
-    values(comp) = InitialValuesMiehe<dim>::value(p, comp);
+    values(comp) = InitialValuesTensionOrShear<dim>::value(p, comp);
+}
+
+
+
+template <int dim>
+class InitialValuesNoCrack : public Function<dim>
+{
+  public:
+    InitialValuesNoCrack (const unsigned int n_components)
+      :
+      Function<dim> (n_components),
+      n_components (n_components)
+    {}
+
+    virtual double
+    value (
+      const Point<dim> &p, const unsigned int component = 0) const;
+
+    virtual void
+    vector_value (
+      const Point<dim> &p, Vector<double> &value) const;
+
+  private:
+    const unsigned int n_components;
+};
+
+template <int dim>
+double
+InitialValuesNoCrack<dim>::value (
+  const Point<dim> & /*p*/, const unsigned int component) const
+{
+  if (component == n_components-1)
+    {
+      return 1.0;
+    }
+  return 0.0;
+}
+
+template <int dim>
+void
+InitialValuesNoCrack<dim>::vector_value (
+  const Point<dim> &p, Vector<double> &values) const
+{
+  for (unsigned int comp = 0; comp < this->n_components; ++comp)
+    values(comp) = InitialValuesNoCrack<dim>::value(p, comp);
 }
 
 
@@ -691,11 +734,8 @@ class BoundaryParabelTension : public Function<dim>
 
   private:
     double _time;
-
 };
 
-// The boundary values are given to component
-// with number 0.
 template <int dim>
 double
 BoundaryParabelTension<dim>::value (const Point<dim>  &p,
@@ -704,10 +744,11 @@ BoundaryParabelTension<dim>::value (const Point<dim>  &p,
   Assert (component < this->n_components,
           ExcIndexRange (component, 0, this->n_components));
 
+  Assert(dim==2, ExcNotImplemented());
 
   double dis_step_per_timestep = 1.0;
 
-  if (component == 1)
+  if (component == 1)  // u_y
     {
       return ( ((p(1) == 1.0) && (p(0) <= 1.0) && (p(0) >= 0.0))
                ?
@@ -735,7 +776,7 @@ BoundaryParabelTension<dim>::vector_value (const Point<dim> &p,
 
 
 // Dirichlet boundary conditions for
-// Miehe's et al. shear test
+// Miehe's et al. shear test 2010
 // Example 2b
 template <int dim>
 class BoundaryParabelShear : public Function<dim>
@@ -758,8 +799,6 @@ class BoundaryParabelShear : public Function<dim>
 
 };
 
-// The boundary values are given to component
-// with number 0.
 template <int dim>
 double
 BoundaryParabelShear<dim>::value (const Point<dim>  &p,
@@ -3119,7 +3158,7 @@ FracturePhaseFieldProblem<dim>::output_results () const
   LA::MPI::BlockVector relevant_solution(partition_relevant);
   relevant_solution = solution;
 
-  SneddonExactPostProc<dim> exact_sol_sneddon(alpha_eps);
+  SneddonExactPostProc<dim> exact_sol_sneddon(introspection.n_components, alpha_eps);
   DataOut<dim> data_out;
   {
     std::vector<std::string> solution_names(dim, "displacement");
@@ -4067,25 +4106,30 @@ FracturePhaseFieldProblem<dim>::run ()
       if (test_case == TestCase::sneddon_2d)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesSneddon<dim>(min_cell_diameter), solution);
+                                   InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
 
         }
       else if (test_case == TestCase::multiple_homo)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesMultipleHomo<dim>(min_cell_diameter), solution);
+                                   InitialValuesMultipleHomo<dim>(introspection.n_components, min_cell_diameter), solution);
 
         }
       else if (test_case == TestCase::multiple_het)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesMultipleHet<dim>(min_cell_diameter), solution);
+                                   InitialValuesMultipleHet<dim>(introspection.n_components, min_cell_diameter), solution);
 
         }
-      else
+      else if (test_case == TestCase::miehe_shear || test_case == TestCase::miehe_tension)
         {
           VectorTools::interpolate(dof_handler,
-                                   InitialValuesMiehe<dim>(min_cell_diameter), solution);
+                                   InitialValuesTensionOrShear<dim>(introspection.n_components, min_cell_diameter), solution);
+        }
+      else if (test_case == TestCase::three_point_bending)
+        {
+          VectorTools::interpolate(dof_handler,
+                                   InitialValuesNoCrack<dim>(introspection.n_components), solution);
         }
       refine_mesh();
 
@@ -4118,25 +4162,32 @@ FracturePhaseFieldProblem<dim>::run ()
     if (test_case == TestCase::sneddon_2d)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesSneddon<dim>(min_cell_diameter), solution);
+                                 InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
       }
     else if (test_case == TestCase::multiple_homo)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesMultipleHomo<dim>(min_cell_diameter), solution);
-
+                                 InitialValuesMultipleHomo<dim>(introspection.n_components, min_cell_diameter), solution);
       }
     else if (test_case == TestCase::multiple_het)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesMultipleHet<dim>(min_cell_diameter), solution);
+                                 InitialValuesMultipleHet<dim>(introspection.n_components, min_cell_diameter), solution);
 
       }
-    else
+    else if (test_case == TestCase::miehe_shear || test_case == TestCase::miehe_tension)
       {
         VectorTools::interpolate(dof_handler,
-                                 InitialValuesMiehe<dim>(min_cell_diameter), solution);
+                                 InitialValuesTensionOrShear<dim>(introspection.n_components, min_cell_diameter), solution);
       }
+    else if (test_case == TestCase::three_point_bending)
+      {
+        VectorTools::interpolate(dof_handler,
+                                 InitialValuesNoCrack<dim>(introspection.n_components), solution);
+      }
+    else
+      AssertThrow(false, ExcNotImplemented());
+
     output_results();
   }
 
@@ -4285,10 +4336,11 @@ FracturePhaseFieldProblem<dim>::run ()
             while (true);
 
           }
-        else throw ExcNotImplemented();
+        else
+          AssertThrow(false, ExcNotImplemented());
 
         // Normalize phase-field function between 0 and 1
-        // TW: I think this function is not really needed any more
+        // TODO: this function is not really needed any more
         project_back_phase_field();
         constraints_hanging_nodes.distribute(solution);
 
@@ -4366,7 +4418,7 @@ FracturePhaseFieldProblem<dim>::run ()
 
             // Now we compare phi to our reference function
             {
-              ExactPhiSneddon<dim> exact(alpha_eps);
+              ExactPhiSneddon<dim> exact(introspection.n_components, alpha_eps);
               Vector<float> error (triangulation.n_active_cells());
 
               LA::MPI::BlockVector rel_solution(
@@ -4375,7 +4427,7 @@ FracturePhaseFieldProblem<dim>::run ()
 
               if (test_case == TestCase::sneddon_2d)
                 {
-                  ExactPhiSneddon<dim> exact(alpha_eps);
+                  ExactPhiSneddon<dim> exact(introspection.n_components, alpha_eps);
                   ComponentSelectFunction<dim> value_select (dim, dim+1); // phi
                   VectorTools::integrate_difference (dof_handler,
                                                      rel_solution,
@@ -4409,23 +4461,23 @@ FracturePhaseFieldProblem<dim>::run ()
             if (test_case == TestCase::sneddon_2d)
               {
                 VectorTools::interpolate(dof_handler,
-                                         InitialValuesSneddon<dim>(min_cell_diameter), solution);
+                                         InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
               }
             else if (test_case == TestCase::multiple_homo)
               {
                 VectorTools::interpolate(dof_handler,
-                                         InitialValuesMultipleHomo<dim>(min_cell_diameter), solution);
+                                         InitialValuesMultipleHomo<dim>(introspection.n_components, min_cell_diameter), solution);
 
               }
             else if (test_case == TestCase::multiple_het)
               {
                 VectorTools::interpolate(dof_handler,
-                                         InitialValuesMultipleHet<dim>(min_cell_diameter), solution);
+                                         InitialValuesMultipleHet<dim>(introspection.n_components, min_cell_diameter), solution);
 
               }
             else
               VectorTools::interpolate(dof_handler,
-                                       InitialValuesMiehe<dim>(min_cell_diameter), solution);
+                                       InitialValuesTensionOrShear<dim>(introspection.n_components, min_cell_diameter), solution);
 
           }
 
