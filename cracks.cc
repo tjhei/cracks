@@ -37,6 +37,18 @@ using ConstraintMatrix = dealii::AffineConstraints<double>;
 #  include <deal.II/grid/tria_boundary_lib.h>
 #endif
 
+#if DEAL_II_VERSION_GTE(9,0,0)
+namespace compatibility
+{
+  using ZeroFunction = Zerofunction<dim>;
+}
+#else
+namespace compatibility
+{
+  using ZeroFunction = Functions::Zerofunction<dim>;
+}
+#endif
+
 // This makes IDEs like QtCreator happy (note that this is defined in cmake):
 #ifndef SOURCE_DIR
 #define SOURCE_DIR ""
@@ -2460,7 +2472,7 @@ template <int dim>
 void
 FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints)
 {
-  ZeroFunction<dim> f_zero(introspection.n_components);
+  compatibility::ZeroFunction<dim> f_zero(introspection.n_components);
 
   if (dim == 2)
     {
