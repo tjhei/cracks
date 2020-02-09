@@ -2552,11 +2552,20 @@ FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, cons
                       || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
                     ))
                     {
-                      types::global_dof_index idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[1]);// y displacement
+                      // y displacement
+                      types::global_dof_index idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[1]);
                       constraints.add_line(idx);
-                      idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[0]);// x displacement
+
+                      // x displacement
+                      idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[0]);
                       if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
                         constraints.add_line(idx);
+
+                      // phasefield: TODO, is this really necessary?
+                      idx = cell->vertex_dof_index(v, introspection.component_indices.phase_field);
+                      constraints.add_line(idx);
+                      if (initial_step)
+                        constraints.set_inhomogeneity(idx, 1.0);
                     }
                   else if (
                     std::abs(cell->vertex(v)[0]) < 1e-10
