@@ -40,12 +40,14 @@ using ConstraintMatrix = dealii::AffineConstraints<double>;
 #if DEAL_II_VERSION_GTE(9,0,0)
 namespace compatibility
 {
-  using ZeroFunction = Zerofunction<dim>;
+  template<int dim>
+  using ZeroFunction = dealii::Functions::ZeroFunction<dim>;
 }
 #else
 namespace compatibility
 {
-  using ZeroFunction = Functions::Zerofunction<dim>;
+  template<int dim>
+  using ZeroFunction = dealii::ZeroFunction<dim>;
 }
 #endif
 
