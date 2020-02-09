@@ -37,6 +37,20 @@ using ConstraintMatrix = dealii::AffineConstraints<double>;
 #  include <deal.II/grid/tria_boundary_lib.h>
 #endif
 
+#if DEAL_II_VERSION_GTE(9,0,0)
+namespace compatibility
+{
+  template<int dim>
+  using ZeroFunction = dealii::Functions::ZeroFunction<dim>;
+}
+#else
+namespace compatibility
+{
+  template<int dim>
+  using ZeroFunction = dealii::ZeroFunction<dim>;
+}
+#endif
+
 // This makes IDEs like QtCreator happy (note that this is defined in cmake):
 #ifndef SOURCE_DIR
 #define SOURCE_DIR ""
@@ -714,17 +728,18 @@ InitialValuesNoCrack<dim>::vector_value (
 
 
 // Several classes for Dirichlet boundary conditions
-// for displacements for the single-edge notched test (Miehe 2010)
-// Example 2a (Miehe tension)
+// for displacements for the single-edge notched test (for phase-field see Miehe et al. 2010)
+// Example 2a (tension test)
+// Example 2b (shear test; see below)
 template <int dim>
-class BoundaryParabelTension : public Function<dim>
+class BoundaryTensionTest : public Function<dim>
 {
   public:
-    BoundaryParabelTension (const double time)
-      : Function<dim>(dim+1)
-    {
-      _time = time;
-    }
+    BoundaryTensionTest (const unsigned int n_components, const double time)
+      : Function<dim>(n_components),
+        n_components (n_components),
+        _time (time)
+    {}
 
     virtual double value (const Point<dim>   &p,
                           const unsigned int  component = 0) const;
@@ -733,13 +748,14 @@ class BoundaryParabelTension : public Function<dim>
                                Vector<double>   &value) const;
 
   private:
+    const unsigned int n_components;
     double _time;
 };
 
 template <int dim>
 double
-BoundaryParabelTension<dim>::value (const Point<dim>  &p,
-                                    const unsigned int component) const
+BoundaryTensionTest<dim>::value (const Point<dim>  &p,
+                                 const unsigned int component) const
 {
   Assert (component < this->n_components,
           ExcIndexRange (component, 0, this->n_components));
@@ -762,14 +778,13 @@ BoundaryParabelTension<dim>::value (const Point<dim>  &p,
 }
 
 
-
 template <int dim>
 void
-BoundaryParabelTension<dim>::vector_value (const Point<dim> &p,
-                                           Vector<double>   &values) const
+BoundaryTensionTest<dim>::vector_value (const Point<dim> &p,
+                                        Vector<double>   &values) const
 {
   for (unsigned int c=0; c<this->n_components; ++c)
-    values (c) = BoundaryParabelTension<dim>::value (p, c);
+    values (c) = BoundaryTensionTest<dim>::value (p, c);
 }
 
 
@@ -779,14 +794,13 @@ BoundaryParabelTension<dim>::vector_value (const Point<dim> &p,
 // Miehe's et al. shear test 2010
 // Example 2b
 template <int dim>
-class BoundaryParabelShear : public Function<dim>
+class BoundaryShearTest : public Function<dim>
 {
   public:
-    BoundaryParabelShear (const double time)
-      : Function<dim>(dim+1)
-    {
-      _time = time;
-    }
+    BoundaryShearTest (const unsigned int n_components, const double time)
+      : Function<dim>(n_components),
+        _time (time)
+    {}
 
     virtual double value (const Point<dim>   &p,
                           const unsigned int  component = 0) const;
@@ -801,8 +815,8 @@ class BoundaryParabelShear : public Function<dim>
 
 template <int dim>
 double
-BoundaryParabelShear<dim>::value (const Point<dim>  &p,
-                                  const unsigned int component) const
+BoundaryShearTest<dim>::value (const Point<dim>  &p,
+                               const unsigned int component) const
 {
   Assert (component < this->n_components,
           ExcIndexRange (component, 0, this->n_components));
@@ -826,11 +840,11 @@ BoundaryParabelShear<dim>::value (const Point<dim>  &p,
 
 template <int dim>
 void
-BoundaryParabelShear<dim>::vector_value (const Point<dim> &p,
-                                         Vector<double>   &values) const
+BoundaryShearTest<dim>::vector_value (const Point<dim> &p,
+                                      Vector<double>   &values) const
 {
   for (unsigned int c=0; c<this->n_components; ++c)
-    values (c) = BoundaryParabelShear<dim>::value (p, c);
+    values (c) = BoundaryShearTest<dim>::value (p, c);
 }
 
 
@@ -838,11 +852,10 @@ template <int dim>
 class BoundaryThreePoint : public Function<dim>
 {
   public:
-    BoundaryThreePoint (const double time)
-      : Function<dim>(dim+1)
-    {
-      _time = time;
-    }
+    BoundaryThreePoint (const unsigned int n_components, const double time)
+      : Function<dim>(n_components),
+        _time (time)
+    {}
 
     virtual double value (const Point<dim>   &p,
                           const unsigned int  component = 0) const;
@@ -1007,11 +1020,9 @@ class FracturePhaseFieldProblem
 
     void assemble_diag_mass_matrix();
 
-    void
-    set_initial_bc (
-      const double time);
-    void
-    set_newton_bc ();
+    void set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints);
+    void set_initial_bc (const double time);
+    void set_newton_bc ();
 
     unsigned int solve ();
 
@@ -2457,299 +2468,155 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
 }
 
 
-
-// Here, we impose boundary conditions
-// for the system and the first Newton step
+// Here, we impose boundary conditions. If initial_step is true, these are non-zero conditions,
+// otherwise they are homogeneous conditions as we solve the Newton system in update form.
 template <int dim>
 void
-FracturePhaseFieldProblem<dim>::set_initial_bc (
-  const double time)
+FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints)
 {
-  std::map<unsigned int, double> boundary_values;
-  std::vector<bool> component_mask(dim+1, false);
-  if (test_case == TestCase::sneddon_2d ||
-      test_case == TestCase::multiple_homo ||
-      test_case == TestCase::multiple_het)
+  compatibility::ZeroFunction<dim> f_zero(introspection.n_components);
+
+  if (dim == 2)
     {
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-    }
-  else if (test_case == TestCase::miehe_tension)
-    {
-      // For Miehe 2010 tension test
-
-      component_mask[0] = false;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               BoundaryParabelTension<dim>(time), boundary_values, component_mask);
-    }
-  else if (test_case == TestCase::miehe_shear)
-    {
-      // For Miehe 2010 shear test
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               BoundaryParabelShear<dim>(time), boundary_values, component_mask);
-
-
-      //      bottom part of crack
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 4,
-                                               ZeroFunction<dim>(dim+1), boundary_values, component_mask);
-
-    }
-  else if (test_case == TestCase::three_point_bending)
-    {
-      // fix y component of left and right bottom corners
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(), endc = dof_handler.end();
-
-      for (; cell != endc; ++cell)
+      if (test_case == TestCase::sneddon_2d ||
+          test_case == TestCase::multiple_homo ||
+          test_case == TestCase::multiple_het)
         {
-          if (cell->is_artificial())
-            continue;
-
-          for (unsigned int v = 0;
-               v < GeometryInfo<dim>::vertices_per_cell; ++v)
-            {
-              if (
-                std::abs(cell->vertex(v)[1]) < 1e-10
-                &&
-                (
-                  std::abs(cell->vertex(v)[0]+4.0) < 1e-10
-                  || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
-                ))
-                {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  boundary_values[idx] = 0.0;
-                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
-                    boundary_values[idx] = 0.0;
-                  idx = cell->vertex_dof_index(v, 2);// 2= phase-field
-                  boundary_values[idx] = 1.0;
-                }
-              else if (
-                std::abs(cell->vertex(v)[0]) < 1e-10
-                &&
-                std::abs(cell->vertex(v)[1]-2.0) < 1e-10
-              )
-                {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  boundary_values[idx] = -1.0*time;
-                }
-
-            }
+          for (unsigned int bc=0; bc<4; ++bc)
+            VectorTools::interpolate_boundary_values(dof_handler, bc,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacements);
         }
+      else if (test_case == TestCase::miehe_tension)
+        {
+          // Tension test (e.g., phase-field by Miehe et al. in 2010)
+          VectorTools::interpolate_boundary_values(dof_handler, 2,
+                                                   f_zero, constraints,
+                                                   introspection.component_masks.displacement[1]);
 
-    }
+          if (initial_step)
+            VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                     BoundaryTensionTest<dim>(introspection.n_components, time), constraints,
+                                                     introspection.component_masks.displacements);
+          else
+            VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacements);
+        }
+      else if (test_case == TestCase::miehe_shear)
+        {
+          // Single edge notched shear (e.g., phase-field by Miehe et al. in 2010)
+          VectorTools::interpolate_boundary_values(dof_handler, 0,
+                                                   f_zero, constraints,
+                                                   introspection.component_masks.displacement[1]);
+          VectorTools::interpolate_boundary_values(dof_handler, 1,
+                                                   f_zero, constraints,
+                                                   introspection.component_masks.displacement[1]);
+          VectorTools::interpolate_boundary_values(dof_handler, 2,
+                                                   f_zero, constraints,
+                                                   introspection.component_masks.displacements);
+          if (initial_step)
+            VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                     BoundaryShearTest<dim>(introspection.n_components, time), constraints,
+                                                     introspection.component_masks.displacements);
+          else
+            VectorTools::interpolate_boundary_values(dof_handler, 3,
+                                                     f_zero, constraints,
+                                                     introspection.component_masks.displacements);
+
+          //      bottom part of crack
+          VectorTools::interpolate_boundary_values(dof_handler, 4,
+                                                   f_zero, constraints,
+                                                   introspection.component_masks.displacement[1]);
+        }
+      else if (test_case == TestCase::three_point_bending)
+        {
+          // fix y component of left and right bottom corners
+          typename DoFHandler<dim>::active_cell_iterator cell =
+            dof_handler.begin_active(), endc = dof_handler.end();
+
+          for (; cell != endc; ++cell)
+            {
+              if (cell->is_artificial())
+                continue;
 
 
-  std::pair<unsigned int, unsigned int> range;
+              for (unsigned int v = 0;
+                   v < GeometryInfo<dim>::vertices_per_cell; ++v)
+                {
+                  if (
+                    std::abs(cell->vertex(v)[1]) < 1e-10
+                    &&
+                    (
+                      std::abs(cell->vertex(v)[0]+4.0) < 1e-10
+                      || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
+                    ))
+                    {
+                      // y displacement
+                      types::global_dof_index idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[1]);
+                      constraints.add_line(idx);
 
-  if (direct_solver)
+                      // x displacement
+                      idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[0]);
+                      if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
+                        constraints.add_line(idx);
+
+                      // phasefield: TODO, is this really necessary?
+                      idx = cell->vertex_dof_index(v, introspection.component_indices.phase_field);
+                      constraints.add_line(idx);
+                      if (initial_step)
+                        constraints.set_inhomogeneity(idx, 1.0);
+                    }
+                  else if (
+                    std::abs(cell->vertex(v)[0]) < 1e-10
+                    &&
+                    std::abs(cell->vertex(v)[1]-2.0) < 1e-10
+                  )
+                    {
+                      types::global_dof_index idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[0]);// x displacement
+                      //boundary_values[idx] = 0.0;
+                      idx = cell->vertex_dof_index(v, introspection.component_indices.displacement[1]);// y displacement
+                      constraints.add_line(idx);
+                      if (initial_step)
+                        constraints.set_inhomogeneity(idx, -1.0*time);
+                    }
+
+                }
+            }
+
+        }
+      else
+        AssertThrow(false, ExcNotImplemented());
+
+    } // end 2d
+  else if (dim == 3)
     {
-      // this is not elegant, but works
-      std::vector<unsigned int> sub_blocks (dim+1,0);
-      sub_blocks[dim] = 1;
-      std::vector<types::global_dof_index> dofs_per_block (2);
-      DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, sub_blocks);
-      const unsigned int n_solid = dofs_per_block[0];
-      IndexSet is = solution.block(0).locally_owned_elements().get_view(0, n_solid);
-      Assert(is.is_contiguous(), ExcInternalError());
-      range.first = is.nth_index_in_set(0);
-      range.second = is.nth_index_in_set(is.n_elements()-1)+1;
+      for (unsigned int b=0; b<6; ++b)
+        VectorTools::interpolate_boundary_values (dof_handler,
+                                                  b,
+                                                  f_zero,
+                                                  constraints,
+                                                  introspection.component_masks.displacements);
     }
-  else
-    {
-      range = solution.block(0).local_range();
-    }
-  for (typename std::map<unsigned int, double>::const_iterator i =
-         boundary_values.begin(); i != boundary_values.end(); ++i)
-    if (i->first >= range.first && i->first < range.second)
-      solution(i->first) = i->second;
 
-  solution.compress(VectorOperation::insert);
 
 }
 
-// This function applies boundary conditions
-// to the Newton iteration steps. For all variables that
-// have Dirichlet conditions on some (or all) parts
-// of the outer boundary, we apply zero-Dirichlet
-// conditions, now.
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::set_initial_bc (const double time)
+{
+  ConstraintMatrix constraints;
+  set_boundary_conditions(time, true, constraints);
+  constraints.close();
+  constraints.distribute(solution);
+}
+
 template <int dim>
 void
 FracturePhaseFieldProblem<dim>::set_newton_bc ()
 {
-  std::vector<bool> component_mask(dim+1, false);
-  if (test_case == TestCase::sneddon_2d ||
-      test_case == TestCase::multiple_homo ||
-      test_case == TestCase::multiple_het)
-    {
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-
-
-      component_mask[0] = true; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-    }
-  else if (test_case == TestCase::miehe_tension)
-    {
-      // Miehe 2010 tension
-      component_mask[0] = false; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true; // false
-      component_mask[1] = true;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-    }
-  else if (test_case == TestCase::miehe_shear)
-    {
-      // Miehe 2010 shear
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 0,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 1,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 2,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      component_mask[0] = true;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 3,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-      // bottom part of crack
-      component_mask[0] = false;
-      component_mask[1] = true;
-      component_mask[2] = false;
-      VectorTools::interpolate_boundary_values(dof_handler, 4,
-                                               ZeroFunction<dim>(dim+1), constraints_update, component_mask);
-
-
-    }
-  else if (test_case == TestCase::three_point_bending)
-    {
-      // fix y component of left and right bottom corners
-      typename DoFHandler<dim>::active_cell_iterator cell =
-        dof_handler.begin_active(), endc = dof_handler.end();
-
-      for (; cell != endc; ++cell)
-        {
-          if (cell->is_artificial())
-            continue;
-
-
-          for (unsigned int v = 0;
-               v < GeometryInfo<dim>::vertices_per_cell; ++v)
-            {
-              if (
-                std::abs(cell->vertex(v)[1]) < 1e-10
-                &&
-                (
-                  std::abs(cell->vertex(v)[0]+4.0) < 1e-10
-                  || std::abs(cell->vertex(v)[0]-4.0) < 1e-10
-                ))
-                {
-
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  constraints_update.add_line(idx);
-                  idx = cell->vertex_dof_index(v, 0);// 0=x displacement
-                  if (std::abs(cell->vertex(v)[0]+4.0) < 1e-10)
-                    constraints_update.add_line(idx);
-                  idx = cell->vertex_dof_index(v, 2);// 2=phase-field
-                  constraints_update.add_line(idx);
-                }
-              else if (
-                std::abs(cell->vertex(v)[0]) < 1e-10
-                &&
-                std::abs(cell->vertex(v)[1]-2.0) < 1e-10
-              )
-                {
-                  types::global_dof_index idx = cell->vertex_dof_index(v, 1);// 1=y displacement
-                  constraints_update.add_line(idx);
-                }
-            }
-        }
-
-    }
-
-
+  set_boundary_conditions(time, false, constraints_update);
 }
 
 
