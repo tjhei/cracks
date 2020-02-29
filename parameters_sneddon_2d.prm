@@ -9,7 +9,7 @@ subsection Global parameters
   set Timestep size			= 1.0 
 
   set outer solver                      = active set
-  set test case                         = sneddon 2d
+  set test case                         = sneddon
   set ref strategy                      = fixed preref sneddon
  
  set value phase field for refinement  = 0.9

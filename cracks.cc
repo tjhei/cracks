@@ -1101,7 +1101,7 @@ class FracturePhaseFieldProblem
 
     struct TestCase
     {
-      enum Enum {sneddon_2d, miehe_tension, miehe_shear, multiple_homo, multiple_het, three_point_bending};
+      enum Enum {sneddon, miehe_tension, miehe_shear, multiple_homo, multiple_het, three_point_bending};
     };
     typename TestCase::Enum test_case;
 
@@ -1200,7 +1200,7 @@ FracturePhaseFieldProblem<dim>::declare_parameters (ParameterHandler &prm)
     prm.declare_entry("outer solver", "active set",
                       Patterns::Selection("active set|simple monolithic"));
 
-    prm.declare_entry("test case", "sneddon 2d", Patterns::Selection("sneddon 2d|miehe tension|miehe shear|multiple homo|multiple het|three point bending"));
+    prm.declare_entry("test case", "sneddon", Patterns::Selection("sneddon|miehe tension|miehe shear|multiple homo|multiple het|three point bending"));
 
     prm.declare_entry("ref strategy", "phase field",
                       Patterns::Selection("phase field|fixed preref sneddon|fixed preref miehe tension|fixed preref miehe shear|fixed preref multiple homo|fixed preref multiple het|global|mix|phase field three point top"));
@@ -1291,8 +1291,8 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   else if (prm.get("outer solver")=="simple monolithic")
     outer_solver = OuterSolverType::simple_monolithic;
 
-  if (prm.get("test case")=="sneddon 2d")
-    test_case = TestCase::sneddon_2d;
+  if (prm.get("test case")=="sneddon")
+    test_case = TestCase::sneddon;
   else if (prm.get("test case")=="miehe tension")
     test_case = TestCase::miehe_tension; // straight crack
   else if (prm.get("test case")=="miehe shear")
@@ -1361,7 +1361,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   alpha_biot = 0.0;
 
 
-  if (test_case == TestCase::sneddon_2d ||
+  if (test_case == TestCase::sneddon ||
       test_case == TestCase::multiple_homo ||
       test_case == TestCase::multiple_het)
     {
@@ -1400,7 +1400,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   typename GridIn<dim>::Format format = GridIn<dim>::ucd;
 
   std::string grid_name = std::string(SOURCE_DIR);
-  if (test_case == TestCase::sneddon_2d ||
+  if (test_case == TestCase::sneddon ||
       test_case == TestCase::multiple_homo ||
       test_case == TestCase::multiple_het)
     grid_name += "/meshes/unit_square_4.inp";
@@ -2478,7 +2478,7 @@ FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, cons
 
   if (dim == 2)
     {
-      if (test_case == TestCase::sneddon_2d ||
+      if (test_case == TestCase::sneddon ||
           test_case == TestCase::multiple_homo ||
           test_case == TestCase::multiple_het)
         {
@@ -3037,7 +3037,7 @@ FracturePhaseFieldProblem<dim>::output_results () const
                              solution_names, data_component_interpretation);
   }
 
-  if (test_case == TestCase::sneddon_2d)
+  if (test_case == TestCase::sneddon)
     {
       data_out.add_data_vector(dof_handler, relevant_solution, exact_sol_sneddon);
     }
@@ -3651,7 +3651,7 @@ FracturePhaseFieldProblem<dim>::determine_mesh_dependent_parameters()
   // old relations (see below why now others are used!)
 
   bool h_and_eps_small_o = false;
-  if (h_and_eps_small_o && test_case == TestCase::sneddon_2d)
+  if (h_and_eps_small_o && test_case == TestCase::sneddon)
     {
       // Bourdin 1999 Image Segmentation gives ideas for
       // choice of parameters w.r.t. h
@@ -3897,7 +3897,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
 
 
   // limit level
-  if (test_case != TestCase::sneddon_2d)
+  if (test_case != TestCase::sneddon)
     {
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
@@ -3970,7 +3970,7 @@ FracturePhaseFieldProblem<dim>::run ()
       ConstraintMatrix constraints;
       constraints.close();
 
-      if (test_case == TestCase::sneddon_2d)
+      if (test_case == TestCase::sneddon)
         {
           VectorTools::interpolate(dof_handler,
                                    InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
@@ -4026,7 +4026,7 @@ FracturePhaseFieldProblem<dim>::run ()
     ConstraintMatrix constraints;
     constraints.close();
 
-    if (test_case == TestCase::sneddon_2d)
+    if (test_case == TestCase::sneddon)
       {
         VectorTools::interpolate(dof_handler,
                                  InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
@@ -4211,7 +4211,7 @@ FracturePhaseFieldProblem<dim>::run ()
         project_back_phase_field();
         constraints_hanging_nodes.distribute(solution);
 
-        if (test_case != TestCase::sneddon_2d)
+        if (test_case != TestCase::sneddon)
           {
             bool changed = refine_mesh();
             if (changed)
@@ -4237,7 +4237,7 @@ FracturePhaseFieldProblem<dim>::run ()
           pcout << std::endl;
           compute_energy();
 
-          if (test_case == TestCase::sneddon_2d ||
+          if (test_case == TestCase::sneddon ||
               test_case == TestCase::multiple_homo ||
               test_case == TestCase::multiple_het)
             {
@@ -4273,12 +4273,12 @@ FracturePhaseFieldProblem<dim>::run ()
 
         // Abbruchkriterium time step algorithm
         finishing_timestep_loop = residual.linfty_norm();
-        if (test_case == TestCase::sneddon_2d)
+        if (test_case == TestCase::sneddon)
           pcout << "Timestep difference linfty: " << finishing_timestep_loop << std::endl;
 
         ++timestep_number;
 
-        if (test_case == TestCase::sneddon_2d && finishing_timestep_loop < 1.0e-5)
+        if (test_case == TestCase::sneddon && finishing_timestep_loop < 1.0e-5)
           {
             //compute_cod_array();
             compute_functional_values();
@@ -4292,7 +4292,7 @@ FracturePhaseFieldProblem<dim>::run ()
                 partition_relevant);
               rel_solution = solution;
 
-              if (test_case == TestCase::sneddon_2d)
+              if (test_case == TestCase::sneddon)
                 {
                   ExactPhiSneddon<dim> exact(introspection.n_components, alpha_eps);
                   ComponentSelectFunction<dim> value_select (dim, dim+1); // phi
@@ -4325,7 +4325,7 @@ FracturePhaseFieldProblem<dim>::run ()
             refine_mesh();
             solution = 0;
             ++refinement_cycle;
-            if (test_case == TestCase::sneddon_2d)
+            if (test_case == TestCase::sneddon)
               {
                 VectorTools::interpolate(dof_handler,
                                          InitialValuesSneddon<dim>(introspection.n_components, min_cell_diameter), solution);
