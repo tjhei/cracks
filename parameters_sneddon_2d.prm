@@ -2,8 +2,8 @@
 # ----------------------------------------------------
 
 subsection Global parameters
-  set Global pre-refinement steps	= 4
-  set Local pre-refinement steps  	= 3
+  set Global pre-refinement steps	= 0
+  set Local pre-refinement steps  	= 2
   set Max No of timesteps  	  	= 50
   set Adaptive refinement cycles        = 3
   set Timestep size			= 1.0 

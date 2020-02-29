@@ -386,23 +386,27 @@ double
 InitialValuesSneddon<dim>::value (
   const Point<dim> &p, const unsigned int component) const
 {
-  double width = _min_cell_diameter;
-  double height = _min_cell_diameter;///2.0;
-  double top = 2.0 + height;
-  double bottom = 2.0 - height;
-  // Defining the initial crack(s)
-  // 0 = crack
-  // 1 = no crack
-  if (component == n_components-1)
+  // impose crack [-1,1]x[-h,h]
+
+  double l_0 = 1.0;
+  double thickness = 2.0*_min_cell_diameter;
+  double r_squared;
+  if (dim == 2)
+    r_squared = p(0)*p(0);
+  else
+    r_squared = p(0)*p(0)+p(2)*p(2);
+
+  if (component == dim)
     {
-      if (((p(0) >= 1.8 - width) && (p(0) <= 2.2 + width))
-          && ((p(1) >= bottom) && (p(1) <= top)))
+      if ( (r_squared <= l_0*l_0)
+           &&
+           (abs(2.0*p(1)) <= thickness) )
         return 0.0;
       else
         return 1.0;
     }
-
-  return 0.0;
+  else
+    return 0.0;
 }
 
 template <int dim>
@@ -431,17 +435,22 @@ class ExactPhiSneddon : public Function<dim>
     {
       (void)component;
 
-      double dist = 0.0;
-      Point<dim> left(1.8, 2.0);
-      Point<dim> right(2.2, 2.0);
+      double l_0 = 1.0;
+      Point<dim> left;
+      left(0)=-l_0;
+      Point<dim> right;
+      right(0)=l_0;
 
-      if (p(0)<1.8)
+      double dist;
+
+      if (p(0)<left(0))
         dist = left.distance(p);
-      else if (p(0)>2.2)
+      else if (p(0)>right(0))
         dist = right.distance(p);
       else
-        dist=std::abs(p(1)-2.0);
-      return 1.0 - exp(-dist/eps);
+        dist = (dim==2)? (std::sqrt(p(1)*p(1))) : (std::sqrt(p(1)*p(1)+p(2)*p(2)));
+
+      return 1.0 - std::exp(-dist/eps);
     }
 
   private:
@@ -1013,7 +1022,7 @@ class FracturePhaseFieldProblem
 
     void set_runtime_parameters ();
     void determine_mesh_dependent_parameters();
-    void setup_mesh(Triangulation<dim> &tria);
+    void setup_mesh();
     void setup_system ();
     void assemble_system (bool residual_only=false);
     void assemble_nl_residual ();
@@ -1164,6 +1173,119 @@ FracturePhaseFieldProblem<dim>::FracturePhaseFieldProblem (ParameterHandler &par
         TimerOutput::cpu_and_wall_times)
 {
   statistics.set_auto_fill_mode(true);
+}
+
+
+
+
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::setup_mesh ()
+{
+  std::string mesh_info = "";
+
+  switch (test_case)
+    {
+      case TestCase::miehe_shear:
+      case TestCase::miehe_tension:
+        mesh_info = "ucd meshes/unit_slit.inp";
+        break;
+
+      case TestCase::sneddon:
+        if (dim==2)
+          mesh_info = "rect -10 -10 10 10";
+        else
+          mesh_info = "rect -10 -10 -10 10 10 10";
+        break;
+
+      case TestCase::multiple_homo:
+      case TestCase::multiple_het:
+        if (dim==2)
+          mesh_info = "ucd meshes/unit_square_4.inp";
+        else
+          mesh_info = "ucd meshes/unit_cube_10.inp";
+        break;
+
+      case TestCase::three_point_bending:
+        mesh_info = "msh meshes/threepoint-notsym.msh";
+        //mesh_info = "msh meshes/threepoint-notsym_b.msh";
+        //mesh_info = "msh meshes/threepoint.msh";
+        break;
+    }
+
+  // TODO: overwrite defaults from parameter file if given
+  // if (mesh != "") mesh_info = mesh;
+
+  AssertThrow(mesh_info!="", ExcMessage("Error: no mesh information given."));
+
+  std::istringstream is(mesh_info);
+  std::string type;
+  std::string grid_name = "";
+  typename GridIn<dim>::Format format = GridIn<dim>::ucd;
+  is >> type;
+
+  if (type=="rect")
+    {
+      Point<dim> p1, p2;
+      if (dim==2)
+        is >> p1[0] >> p1[1] >> p2[0] >> p2[1];
+      else
+        is >> p1[0] >> p1[1] >> p1[2] >> p2[0] >> p2[1] >> p2[2];
+
+      std::vector<unsigned int> repetitions(dim, 10); // 10 in each direction
+      GridGenerator::subdivided_hyper_rectangle(triangulation,
+                                                repetitions,
+                                                p1,
+                                                p2,
+                                                /*colorize*/true);
+    }
+  else if (type=="msh")
+    {
+      format = GridIn<dim>::msh;
+      is >> grid_name;
+    }
+  else if (type=="ucd")
+    {
+      format = GridIn<dim>::ucd;
+      is >> grid_name;
+    }
+
+  if (grid_name != "")
+    {
+      GridIn<dim> grid_in;
+      grid_in.attach_triangulation(triangulation);
+      std::ifstream input_file(grid_name.c_str());
+      grid_in.read(input_file, format);
+    }
+
+  if (test_case == TestCase::three_point_bending)
+    {
+      //adjust boundary conditions
+      double eps_machine = 1.0e-10;
+
+      typename Triangulation<dim>::active_cell_iterator
+      cell = triangulation.begin_active(),
+      endc = triangulation.end();
+      for (; cell!=endc; ++cell)
+        for (unsigned int f=0;
+             f < GeometryInfo<dim>::faces_per_cell;
+             ++f)
+          {
+            const Point<dim> face_center = cell->face(f)->center();
+            if (cell->face(f)->at_boundary())
+              {
+                if ((face_center[1] < 2.0+eps_machine) && (face_center[1] > 2.0-eps_machine)
+                   )
+                  cell->face(f)->set_boundary_id(3);
+                else if ((face_center[0] < -4.0+eps_machine) && (face_center[0] > -4.0-eps_machine)
+                        )
+                  cell->face(f)->set_boundary_id(0);
+                else if ((face_center[0] < 4.0+eps_machine) && (face_center[0] > 4.0-eps_machine)
+                        )
+                  cell->face(f)->set_boundary_id(1);
+              }
+          }
+    }
 }
 
 
@@ -1394,59 +1516,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   // Counts total time
   time = 0;
 
-  // In the following, we read a *.inp grid from a file.
-  // The configuration is based on Sneddon's benchmark (1969)
-  // and Miehe 2010 (tension and shear)
-  typename GridIn<dim>::Format format = GridIn<dim>::ucd;
-
-  std::string grid_name = std::string(SOURCE_DIR);
-  if (test_case == TestCase::sneddon ||
-      test_case == TestCase::multiple_homo ||
-      test_case == TestCase::multiple_het)
-    grid_name += "/meshes/unit_square_4.inp";
-  else if (test_case == TestCase::three_point_bending)
-    {
-      grid_name += "/meshes/threepoint.msh";
-      format = GridIn<dim>::msh;
-    }
-  else
-    grid_name  += "/meshes/unit_slit.inp";
-
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(triangulation);
-  std::ifstream input_file(grid_name.c_str());
-  Assert(dim==2, ExcInternalError());
-  grid_in.read(input_file, format);
-
-
-  if (test_case == TestCase::three_point_bending)
-    {
-      double eps_machine = 1.0e-10;
-
-      typename Triangulation<dim>::active_cell_iterator
-      cell = triangulation.begin_active(),
-      endc = triangulation.end();
-      for (; cell!=endc; ++cell)
-        for (unsigned int f=0;
-             f < GeometryInfo<dim>::faces_per_cell;
-             ++f)
-          {
-            const Point<dim> face_center = cell->face(f)->center();
-            if (cell->face(f)->at_boundary())
-              {
-                if ((face_center[1] < 2.0+eps_machine) && (face_center[1] > 2.0-eps_machine)
-                   )
-                  cell->face(f)->set_boundary_id(3);
-                else if ((face_center[0] < -4.0+eps_machine) && (face_center[0] > -4.0-eps_machine)
-                        )
-                  cell->face(f)->set_boundary_id(0);
-                else if ((face_center[0] < 4.0+eps_machine) && (face_center[0] > 4.0-eps_machine)
-                        )
-                  cell->face(f)->set_boundary_id(1);
-              }
-          }
-    }
-
+  setup_mesh();
   triangulation.refine_global(n_global_pre_refine);
 
   pcout << "Cells:\t" << triangulation.n_active_cells() << std::endl;
@@ -3200,15 +3270,15 @@ FracturePhaseFieldProblem<dim>::compute_point_stress ()
 
 int value_to_bucket(double x, unsigned int n_buckets)
 {
-  const double x1 = 1.5;
-  const double x2 = 2.5;
+  const double x1 = -1.5;
+  const double x2 = 1.5;
   return std::floor((x-x1)/(x2-x1)*n_buckets+0.5);
 }
 
 double bucket_to_value(unsigned int idx, unsigned int n_buckets)
 {
-  const double x1 = 1.5;
-  const double x2 = 2.5;
+  const double x1 = -1.5;
+  const double x2 = 1.5;
   return x1 + idx*(x2-x1)/n_buckets;
 }
 
@@ -3226,7 +3296,7 @@ FracturePhaseFieldProblem<dim>::compute_cod_array ()
   for (unsigned int i=0; i<n_buckets; ++i)
     {
       double x = bucket_to_value(i, n_buckets);
-      exact[i] = 3.84e-4*std::sqrt(std::max(0.0,1.0-(x-2.0)*(x-2.0)/0.04));
+      exact[i] = 1.92e-3*std::sqrt(std::max(0.0,1.0-x*x));
     }
 
   // this yields 100 quadrature points evenly distributed in the interior of the cell.
@@ -3297,7 +3367,7 @@ FracturePhaseFieldProblem<dim>::compute_cod_array ()
   for (unsigned int i=0; i<n_buckets; ++i)
     values[i] = values_all[i] / width / 2.0;
 
-  double middle_value = compute_cod(2.0);
+  double middle_value = compute_cod(0.0);
 
   if (Utilities::MPI::this_mpi_process(mpi_com) == 0)
     {
@@ -3353,7 +3423,12 @@ FracturePhaseFieldProblem<dim>::compute_cod (
     n_face_q_points, std::vector<Tensor<1, dim> >(dim+1));
 
   double cod_value = 0.0;
-  double eps = 1.0e-6;
+  double eps = 1.0e-8;
+
+  unsigned int n_faces = 0;
+
+  Tensor<1,dim> n; // normal of the evaluation line
+  n[0]=1.0;
 
   typename DoFHandler<dim>::active_cell_iterator cell =
     dof_handler.begin_active(), endc = dof_handler.end();
@@ -3365,37 +3440,50 @@ FracturePhaseFieldProblem<dim>::compute_cod (
              ++face)
           {
             fe_face_values.reinit(cell, face);
+            if (fabs(fe_face_values.normal_vector(0) * n) < 0.5)
+              continue; // skip faces not perpendicular to evaluation line
+
             fe_face_values.get_function_values(rel_solution,
                                                face_solution_values);
             fe_face_values.get_function_gradients(rel_solution,
                                                   face_solution_grads);
 
-            for (unsigned int q_point = 0; q_point < n_face_q_points;
-                 ++q_point)
+            if ((fe_face_values.quadrature_point(0)[0]
+                 < (eval_line + eps))
+                && (fe_face_values.quadrature_point(0)[0]
+                    > (eval_line - eps)))
               {
-                if ((fe_face_values.quadrature_point(q_point)[0]
-                     < (eval_line + eps))
-                    && (fe_face_values.quadrature_point(q_point)[0]
-                        > (eval_line - eps)))
+                ++n_faces;
+
+                for (unsigned int q_point = 0; q_point < n_face_q_points;
+                     ++q_point)
                   {
-                    const Tensor<1, dim> u = Tensors::get_u<dim>(
-                                               q_point, face_solution_values);
 
-                    const Tensor<1, dim> grad_pf =
-                      Tensors::get_grad_pf<dim>(q_point,
-                                                face_solution_grads);
+                    {
+                      const Tensor<1, dim> u = Tensors::get_u<dim>(
+                                                 q_point, face_solution_values);
 
-                    // Motivated by Bourdin et al. (2012); SPE Paper
-                    cod_value += 0.5 * u * grad_pf
-                                 * fe_face_values.JxW(q_point);
+                      const Tensor<1, dim> grad_pf =
+                        Tensors::get_grad_pf<dim>(q_point,
+                                                  face_solution_grads);
+
+                      // Motivated by Bourdin et al. (2012); SPE Paper
+                      cod_value += 0.5 * u * grad_pf
+                                   * fe_face_values.JxW(q_point);
+
+                    }
 
                   }
-
               }
           }
       }
 
+  // divide by two, because we count each face twice:
   cod_value = Utilities::MPI::sum(cod_value, mpi_com) / 2.0;
+
+  const unsigned int global_n_faces = Utilities::MPI::sum(n_faces, mpi_com);
+  if (global_n_faces==0)
+    return -1e300;
 
   pcout << eval_line << "  " << cod_value << std::endl;
 
@@ -3487,19 +3575,11 @@ FracturePhaseFieldProblem<dim>::compute_energy()
 
 }
 
-// Here, we compute the four quantities of interest:
-// the x and y-displacements of the structure, the drag, and the lift.
+// Evaluate the COD at different lines -1.0=x_0< x_1 < ... < x_N = 1.0
 template <int dim>
 void
 FracturePhaseFieldProblem<dim>::compute_functional_values ()
 {
-  double lines[] =
-  {
-    1.0, 1.5, 1.75, 1.78125, 1.8125, 1.84375, 1.875, 1.9375, 2.0, 2.0625, 2.125, 2.15625,
-    2.1875, 2.21875, 2.25, 2.5, 3.0
-  };
-  const unsigned int n_lines = sizeof(lines) / sizeof(*lines);
-
   static unsigned int no = 0;
   ++no;
   std::ostringstream filename;
@@ -3507,18 +3587,16 @@ FracturePhaseFieldProblem<dim>::compute_functional_values ()
   pcout << "writing " << filename.str() << std::endl;
 
   std::ofstream f(filename.str().c_str());
-  for (unsigned int i = 0; i < n_lines; ++i)
+
+  const unsigned int N = 16*16;
+  const double dx = 1.0/N;
+  for (unsigned int i = 0; i <= 3*N; ++i)
     {
-      double value = compute_cod(lines[i]);
-      f << lines[i] << " " << value << std::endl;
+      const double x = -1.5 + i*dx;
+      double value = compute_cod(x);
+      if (value>-1e100)
+        f << x << " " << value << std::endl;
     }
-
-//    double y_and_h = 2.0 + min_cell_diameter;
-//    double px[] = { 1.6, 1.8, 1.85, 1.9, 1.95, 2.0, 2.05, 2.1, 2.15, 2.2, 2.4 };
-//    const unsigned int n = sizeof(px) / sizeof(*px);
-//    std::vector<double> val(n);
-
-
 }
 
 
@@ -3704,8 +3782,8 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
                  vertex < GeometryInfo<dim>::vertices_per_cell; ++vertex)
               {
                 Tensor<1, dim> cell_vertex = (cell->vertex(vertex));
-                if (cell_vertex[0] <= 2.5 && cell_vertex[0] >= 1.5
-                    && cell_vertex[1] <= 2.25 && cell_vertex[1] >= 1.75)
+                if (cell_vertex[0] <= 2.5 && cell_vertex[0] >= -2.5
+                    && cell_vertex[1] <= 1.25 && cell_vertex[1] >= -1.25)
                   {
                     cell->set_refine_flag();
                     break;
