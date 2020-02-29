@@ -1188,7 +1188,7 @@ FracturePhaseFieldProblem<dim>::setup_mesh ()
     {
       case TestCase::miehe_shear:
       case TestCase::miehe_tension:
-        mesh_info = "ucd meshes/unit_slit.inp";
+        mesh_info = "ucd $SRC/meshes/unit_slit.inp";
         break;
 
       case TestCase::sneddon:
@@ -1201,15 +1201,15 @@ FracturePhaseFieldProblem<dim>::setup_mesh ()
       case TestCase::multiple_homo:
       case TestCase::multiple_het:
         if (dim==2)
-          mesh_info = "ucd meshes/unit_square_4.inp";
+          mesh_info = "ucd $SRC/meshes/unit_square_4.inp";
         else
-          mesh_info = "ucd meshes/unit_cube_10.inp";
+          mesh_info = "ucd $SRC/meshes/unit_cube_10.inp";
         break;
 
       case TestCase::three_point_bending:
-        mesh_info = "msh meshes/threepoint-notsym.msh";
-        //mesh_info = "msh meshes/threepoint-notsym_b.msh";
-        //mesh_info = "msh meshes/threepoint.msh";
+        //mesh_info = "msh $SRC/meshes/threepoint-notsym.msh";
+        //mesh_info = "msh $SRC/meshes/threepoint-notsym_b.msh";
+        mesh_info = "msh $SRC/meshes/threepoint.msh";
         break;
     }
 
@@ -1254,6 +1254,7 @@ FracturePhaseFieldProblem<dim>::setup_mesh ()
     {
       GridIn<dim> grid_in;
       grid_in.attach_triangulation(triangulation);
+      grid_name=Utilities::replace_in_string(grid_name,"$SRC", SOURCE_DIR);
       std::ifstream input_file(grid_name.c_str());
       grid_in.read(input_file, format);
     }
