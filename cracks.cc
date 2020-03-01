@@ -1043,17 +1043,17 @@ class FracturePhaseFieldProblem
       const DoFHandler<dim> &dofh, const LA::MPI::BlockVector &vector,
       const Point<dim> &p, const unsigned int component) const;
 
-    void
-    compute_point_stress ();
+    void compute_point_stress ();
 
     void output_results () const;
 
     void compute_functional_values ();
 
-    void
-    compute_load();
+    void compute_load();
 
     void compute_cod_array ();
+
+    void compute_tcv ();
 
     double compute_cod(const double eval_line);
 
@@ -3493,6 +3493,69 @@ FracturePhaseFieldProblem<dim>::compute_cod (
 }
 
 
+
+template <int dim>
+void
+FracturePhaseFieldProblem<dim>::compute_tcv ()
+{
+  // compute the total crack volume = TCV = \int_\Omega u \cdot \nabla \phi
+
+  const QGauss<dim> quadrature (fe.degree+2);
+  const unsigned int n_q_points = quadrature.size();
+
+  LA::MPI::BlockVector rel_solution(partition_relevant);
+  rel_solution = solution;
+
+  FEValues<dim> fe_values(fe, quadrature,
+                          update_values | update_quadrature_points | update_JxW_values
+                          | update_gradients);
+
+
+  typename DoFHandler<dim>::active_cell_iterator cell =
+    dof_handler.begin_active(), endc = dof_handler.end();
+
+  std::vector<Tensor<1,dim> > displacement_values(n_q_points);
+  std::vector<Tensor<1,dim> > phase_field_grads(n_q_points);
+
+  double local_integral = 0.0;
+
+  for (; cell != endc; ++cell)
+    if (cell->is_locally_owned())
+      {
+        fe_values.reinit(cell);
+        fe_values[introspection.extractors.displacement].get_function_values(rel_solution, displacement_values);
+        fe_values[introspection.extractors.phase_field].get_function_gradients(rel_solution, phase_field_grads);
+
+        for (unsigned int q = 0; q < n_q_points; ++q)
+          local_integral += displacement_values[q] * phase_field_grads[q] * fe_values.JxW(q);
+      }
+
+  double tcv = Utilities::MPI::sum(local_integral, mpi_com);
+
+  double ref;
+  {
+    double l_0 = 1.0;
+    double E = 1.0;
+    double p = func_pressure.value(Point<1>(time), 0); // 1e-3 in benchmark
+    double nu = poisson_ratio_nu; // 0.2 in benchmark
+
+    if (dim==2)
+      ref = 2.0*p*l_0*l_0*(1.0-nu*nu)*numbers::PI/E; // = 0.00603186
+    else
+      ref = 16.0*p*l_0*l_0*l_0*(1.0-nu*nu)/E/3.0; // = 0.00512
+  }
+
+  pcout << "TCV: value= " << tcv
+        << " exact= " << ref
+        << " error= " << std::abs(tcv-ref)
+        << std::endl;
+  statistics.add_value("TCV", tcv);
+  statistics.set_precision("TCV", 8);
+  statistics.set_scientific("TCV", true);
+}
+
+
+
 template <int dim>
 double
 FracturePhaseFieldProblem<dim>::compute_energy()
@@ -4359,7 +4422,8 @@ FracturePhaseFieldProblem<dim>::run ()
 
         if (test_case == TestCase::sneddon && finishing_timestep_loop < 1.0e-5)
           {
-            //compute_cod_array();
+            //compute_cod_array(); // very expensive
+            compute_tcv();
             compute_functional_values();
 
             // Now we compare phi to our reference function
