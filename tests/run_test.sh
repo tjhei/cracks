@@ -4,6 +4,7 @@ TEST_DIFF=$1
 LEFT=$2
 RIGHT=$3
 WPATH=$4
+DIFFNAME=$5
 
 echo "Check $2 $3"
 
@@ -23,7 +24,7 @@ echo "Diff Output:"
 echo ""
 # reverse needed, so we can use it to patch
 cd $WPATH
-diff -u $RIGHT $LEFT >$WPATH/diff
+diff -u $RIGHT $LEFT >$WPATH/$DIFFNAME
 echo ""
 
 exit 1

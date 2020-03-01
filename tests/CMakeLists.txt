@@ -55,7 +55,7 @@ FOREACH(_test ${_tests})
     SET(_use_test OFF)
   ENDIF()
 
-  SET(_test_prm "$_testname.prm")
+  SET(_test_prm "${_testname}.prm")
   STRING(REGEX MATCH "mpirun=([0-9]*)" NP ${_test})
   IF("${NP}" STREQUAL "")
     SET(NP 1)
@@ -66,6 +66,7 @@ FOREACH(_test ${_tests})
   SET(_test_prm "${_testname}.prm")
   SET(_testname "${_testname}-np${NP}")
   SET(_test_ref_output "${_test}")
+  STRING(REGEX REPLACE ".output$" ".statistics" _test_ref_statistics ${_test_ref_output})
 
   MESSAGE(STATUS "** processing test ${_testname}  NP=${NP}:")
 
@@ -107,6 +108,17 @@ ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen
 		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output
 		${_test_ref_output}
 		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}
+		screendiff
+
+	COMMAND
+	echo "Check ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/statistics ${_test_ref_statistics}"
+	COMMAND
+	${CMAKE_CURRENT_SOURCE_DIR}/run_test.sh ${TEST_DIFF}
+		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/statistics
+		${_test_ref_statistics}
+		${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}
+		statdiff
+
 	COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/output.diff
         DEPENDS ${_test_ref_output}
                 ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output)
