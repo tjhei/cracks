@@ -1,17 +1,17 @@
 Problem dimension: 2
 Running on 1 cores
-Cells:	64
+Cells:	100
 
-DoFs: 162 solid + 81 phase = 243
+DoFs: 242 solid + 121 phase = 363
 
-DoFs: 222 solid + 111 phase = 333
+DoFs: 302 solid + 151 phase = 453
 
 ===================================================================
 Parameters
 ==========
-h (min):           0.353553
-k:                 3.53553e-09
-eps:               0.707107
+h (min):           1.41421
+k:                 1.41421e-08
+eps:               2.82843
 G_c:               1
 gamma penal:       0
 Poisson nu:        0.2
@@ -24,97 +24,83 @@ Write solution 0
 
 
 =======================================================================
-Timestep 0: 0 (1)   Cells: 88   DoFs: 333
+Timestep 0: 0 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
 It.	#A.Set	Residual	Reduction	LSrch	#LinIts
-0		4.487854e+00
-1	24	3.668050e-07	8.173283e-08	0	2
-2	15	1.904605e-13	5.192420e-07	0	1
-3	15	7.991704e-16	4.195989e-03	0	2
+0		1.491639e+01
+1	22	2.418498e-06	1.621370e-07	0	2
+2	9	5.803737e-13	2.399727e-07	0	1
+3	9	3.894262e-15	6.709922e-03	0	1
 
-No 0 time 1 bulk energy: 4.56849e-07 crack energy: 2.73891
+No 0 time 1 bulk energy: 4.28283e-06 crack energy: 8.25552
 Write solution 1
 	as output-sneddon_2d_1-np1/solution_00001.visit
-Timestep difference linfty: 0.677421
+Timestep difference linfty: 0.616014
 
 
 =======================================================================
-Timestep 1: 1 (1)   Cells: 88   DoFs: 333
+Timestep 1: 1 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
 It.	#A.Set	Residual	Reduction	LSrch	#LinIts
-0		5.596089e-04
-1	56	8.015196e-07	1.432285e-03	0	3
-2	68	4.346343e-16	5.422628e-10	0	1
-3	51	3.341491e-07	7.688053e+08	10	1
-4	51	5.246564e-16	1.570127e-09	0	1
+0		2.998946e-03
+1	72	7.980724e-06	2.661176e-03	0	2
+2	104	2.471086e-15	3.096318e-10	0	1
+3	85	1.124248e-05	4.549612e+09	10	1
+4	85	2.603687e-15	2.315936e-10	0	1
 
-No 1 time 2 bulk energy: 3.45421e-06 crack energy: 2.73891
+No 1 time 2 bulk energy: 6.78092e-05 crack energy: 8.25552
 Write solution 2
 	as output-sneddon_2d_1-np1/solution_00002.visit
-Timestep difference linfty: 0.00197124
+Timestep difference linfty: 0.00534514
 
 
 =======================================================================
-Timestep 2: 2 (1)   Cells: 88   DoFs: 333
+Timestep 2: 2 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
 It.	#A.Set	Residual	Reduction	LSrch	#LinIts
-0		5.213549e-04
-1	73	5.557208e-07	1.065916e-03	0	3
-2	80	3.077109e-16	5.537149e-10	0	1
-3	67	4.349075e-08	1.413364e+08	10	1
-4	67	4.974517e-16	1.143810e-08	0	1
+0		2.206733e-03
+1	106	7.472287e-06	3.386131e-03	0	2
+2	122	1.303251e-15	1.744112e-10	0	1
+3	115	7.236074e-07	5.552328e+08	10	1
+4	115	1.908842e-15	2.637952e-09	0	1
 
-No 2 time 3 bulk energy: 1.31755e-06 crack energy: 2.73891
+No 2 time 3 bulk energy: 2.19221e-05 crack energy: 8.25552
 Write solution 3
 	as output-sneddon_2d_1-np1/solution_00003.visit
-Timestep difference linfty: 0.00177247
+Timestep difference linfty: 0.00407909
 
 
 =======================================================================
-Timestep 3: 3 (1)   Cells: 88   DoFs: 333
+Timestep 3: 3 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
 It.	#A.Set	Residual	Reduction	LSrch	#LinIts
-0		4.339199e-10
-1	83	2.595141e-16	5.980691e-07	0	2
-2	67	1.079647e-13	4.160263e+02	10	1
-3	67	3.747998e-16	3.471504e-03	0	1
+0		1.248424e-08
+1	129	9.531514e-16	7.634835e-08	0	2
+2	115	1.334599e-11	1.400196e+04	10	1
+3	115	1.847670e-15	1.384439e-04	0	1
 
-No 3 time 4 bulk energy: 1.31754e-06 crack energy: 2.73891
+No 3 time 4 bulk energy: 2.19219e-05 crack energy: 8.25552
 Write solution 4
 	as output-sneddon_2d_1-np1/solution_00004.visit
-Timestep difference linfty: 4.35217e-10
+Timestep difference linfty: 9.9606e-09
 writing cod-01b.txt
-1  0.000251362
-1.5  0.000841718
-1.75  0.000549809
-1.78125  0
-1.8125  0
-1.84375  0
-1.875  0.000174494
-1.9375  0
-2  0.000780781
-2.0625  0
-2.125  0.000174494
-2.15625  0
-2.1875  0
-2.21875  0
-2.25  0.000549809
-2.5  0.000841718
-3  0.000251362
-phi_L2_error: 0.336931 h: 0.353553
+-1  0.00245477
+0  0.00296695
+1  0.00245477
+phi_L2_error: 0.978645 h: 1.41421
 
 
 ================== 
 Refinement cycle 0
 ------------------ 
 
-DoFs: 438 solid + 219 phase = 657
+DoFs: 518 solid + 259 phase = 777
 
-Finishing time step loop: 4.35217e-10
+Finishing time step loop: 9.9606e-09
 
 
 +---------------------------------------------+------------+------------+
