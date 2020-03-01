@@ -87,6 +87,7 @@ No 3 time 4 bulk energy: 2.19219e-05 crack energy: 8.25552
 Write solution 4
 	as output-sneddon_2d_1-np1/solution_00004.visit
 Timestep difference linfty: 9.9606e-09
+TCV: value= 0.0418879 exact= 0.00603186 error= 0.035856
 writing cod-01b.txt
 -1  0.00245477
 0  0.00296695
