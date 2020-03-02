@@ -3437,6 +3437,12 @@ FracturePhaseFieldProblem<dim>::compute_cod (
   for (; cell != endc; ++cell)
     if (cell->is_locally_owned())
       {
+        const double cell_x = cell->center()[0];
+        if (cell_x - cell->diameter() > eval_line
+            ||
+            cell_x + cell->diameter() < eval_line)
+          continue; // skip cells that are surely too far away
+
         for (unsigned int face = 0; face < GeometryInfo<dim>::faces_per_cell;
              ++face)
           {
