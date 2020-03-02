@@ -3639,7 +3639,12 @@ FracturePhaseFieldProblem<dim>::compute_energy()
         << " bulk energy: " << bulk_energy
         << " crack energy: " << crack_energy;
   statistics.add_value("Bulk Energy", bulk_energy);
+  statistics.set_precision("Bulk Energy", 8);
+  statistics.set_scientific("Bulk Energy", true);
   statistics.add_value("Crack Energy", crack_energy);
+  statistics.set_precision("Crack Energy", 8);
+  statistics.set_scientific("Crack Energy", true);
+
 
   return 0;
 
@@ -3738,12 +3743,16 @@ FracturePhaseFieldProblem<dim>::compute_load ()
       double load_y = Utilities::MPI::sum(load_value[1], mpi_com);
       pcout << "  Load y: " << load_y;
       statistics.add_value("Load y", load_y);
+      statistics.set_precision("Load y", 8);
+      statistics.set_scientific("Load y", true);
     }
   else if (test_case == TestCase::miehe_shear)
     {
       double load_x = Utilities::MPI::sum(load_value[0], mpi_com);
       pcout << "  Load x: " << load_x;
       statistics.add_value("Load x", load_x);
+      statistics.set_precision("Load x", 8);
+      statistics.set_scientific("Load x", true);
     }
   else if (test_case == TestCase::three_point_bending)
     {
@@ -3751,6 +3760,8 @@ FracturePhaseFieldProblem<dim>::compute_load ()
       double load = Utilities::MPI::sum(load_value[1], mpi_com);
       pcout << "  P11: " << load;
       statistics.add_value("Load P11", load);
+      statistics.set_precision("Load P11", 8);
+      statistics.set_scientific("Load P11", true);
     }
 }
 
@@ -4379,6 +4390,9 @@ FracturePhaseFieldProblem<dim>::run ()
         statistics.add_value("Timestep No", timestep_number);
         statistics.add_value("Time", time);
         statistics.add_value("DoFs", dof_handler.n_dofs());
+        statistics.add_value("minimum cell diameter", min_cell_diameter);
+        statistics.set_precision("minimum cell diameter", 8);
+        statistics.set_scientific("minimum cell diameter", true);
 
         // Compute statistics and print them in a single line:
         {
@@ -4459,6 +4473,9 @@ FracturePhaseFieldProblem<dim>::run ()
               const double local_error = error.l2_norm();
               const double L2_error =  std::sqrt( Utilities::MPI::sum(local_error * local_error, mpi_com));
               pcout << "phi_L2_error: " << L2_error << " h: " << min_cell_diameter << std::endl;
+              statistics.add_value("phi_L2_error", L2_error);
+              statistics.set_precision("phi_L2_error", 8);
+              statistics.set_scientific("phi_L2_error", true);
             }
 
             if (n_refinement_cycles==0)
