@@ -27,11 +27,11 @@ Write solution 0
 Timestep 0: 0 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
-It.	#A.Set	Residual	Reduction	LSrch	#LinIts
+It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0		1.491639e+01
-1	22	2.418498e-06	1.621370e-07	0	2
-2	9	5.803737e-13	2.399727e-07	0	1
-3	9	3.894262e-15	6.709922e-03	0	1
+1	22	0	2.418498e-06	1.621370e-07	0	2
+2	9	0	5.803737e-13	2.399727e-07	0	1
+3	9	0	3.894262e-15	6.709922e-03	0	1
 
 No 0 time 1 bulk energy: 4.28283e-06 crack energy: 8.25552
 Write solution 1
@@ -43,12 +43,12 @@ Timestep difference linfty: 0.616014
 Timestep 1: 1 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
-It.	#A.Set	Residual	Reduction	LSrch	#LinIts
+It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0		2.998946e-03
-1	72	7.980724e-06	2.661176e-03	0	2
-2	104	2.471086e-15	3.096318e-10	0	1
-3	85	1.124248e-05	4.549612e+09	10	1
-4	85	2.603687e-15	2.315936e-10	0	1
+1	72	0	7.980724e-06	2.661176e-03	0	2
+2	104	0	2.471086e-15	3.096318e-10	0	1
+3	85	0	1.124248e-05	4.549612e+09	10	1
+4	85	0	2.603687e-15	2.315936e-10	0	1
 
 No 1 time 2 bulk energy: 6.78092e-05 crack energy: 8.25552
 Write solution 2
@@ -60,12 +60,12 @@ Timestep difference linfty: 0.00534514
 Timestep 2: 2 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
-It.	#A.Set	Residual	Reduction	LSrch	#LinIts
+It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0		2.206733e-03
-1	106	7.472287e-06	3.386131e-03	0	2
-2	122	1.303251e-15	1.744112e-10	0	1
-3	115	7.236074e-07	5.552328e+08	10	1
-4	115	1.908842e-15	2.637952e-09	0	1
+1	106	0	7.472287e-06	3.386131e-03	0	2
+2	122	0	1.303251e-15	1.744112e-10	0	1
+3	115	0	7.236074e-07	5.552328e+08	10	1
+4	115	0	1.908842e-15	2.637952e-09	0	1
 
 No 2 time 3 bulk energy: 2.19221e-05 crack energy: 8.25552
 Write solution 3
@@ -77,11 +77,11 @@ Timestep difference linfty: 0.00407909
 Timestep 3: 3 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
-It.	#A.Set	Residual	Reduction	LSrch	#LinIts
+It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0		1.248424e-08
-1	129	9.531514e-16	7.634835e-08	0	2
-2	115	1.334599e-11	1.400196e+04	10	1
-3	115	1.847670e-15	1.384439e-04	0	1
+1	129	0	9.531514e-16	7.634835e-08	0	2
+2	115	0	1.334599e-11	1.400196e+04	10	1
+3	115	0	1.847670e-15	1.384439e-04	0	1
 
 No 3 time 4 bulk energy: 2.19219e-05 crack energy: 8.25552
 Write solution 4
