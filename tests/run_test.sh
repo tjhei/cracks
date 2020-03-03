@@ -24,7 +24,7 @@ echo "Diff Output:"
 echo ""
 # reverse needed, so we can use it to patch
 cd $WPATH
-diff -u $RIGHT $LEFT >$WPATH/$DIFFNAME
+diff -u $RIGHT $LEFT | tee $WPATH/$DIFFNAME
 echo ""
 
 exit 1
