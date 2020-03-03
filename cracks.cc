@@ -2143,7 +2143,7 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
   FullMatrix<double> local_matrix(dofs_per_cell, dofs_per_cell);
   Vector<double> local_rhs(dofs_per_cell);
 
-  std::vector<unsigned int> local_dof_indices(dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
   // Old Newton values
   std::vector<Tensor<1, dim> > old_displacement_values(n_q_points);
@@ -2506,7 +2506,7 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
 
   Vector<double> local_rhs(dofs_per_cell);
 
-  std::vector<unsigned int> local_dof_indices(dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
   typename DoFHandler<dim>::active_cell_iterator cell =
     dof_handler.begin_active(), endc = dof_handler.end();
@@ -2802,7 +2802,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
         LA::MPI::BlockVector solution_relevant(partition_relevant);
         solution_relevant = solution;
 
-        std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
         typename DoFHandler<dim>::active_cell_iterator cell =
           dof_handler.begin_active(), endc = dof_handler.end();
 
@@ -2818,7 +2818,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
                 if (comp_i != introspection.component_indices.phase_field)
                   continue; // only look at phase field
 
-                const unsigned int idx = local_dof_indices[i];
+                const types::global_dof_index idx = local_dof_indices[i];
 
                 double old_value = old_solution_relevant(idx);
                 double new_value = solution_relevant(idx);
@@ -3060,7 +3060,7 @@ FracturePhaseFieldProblem<dim>::project_back_phase_field ()
   typename DoFHandler<dim>::active_cell_iterator cell =
     dof_handler.begin_active(), endc = dof_handler.end();
 
-  std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
   for (; cell != endc; ++cell)
     if (cell->is_locally_owned())
       {
@@ -3071,7 +3071,7 @@ FracturePhaseFieldProblem<dim>::project_back_phase_field ()
             if (comp_i != introspection.component_indices.phase_field)
               continue; // only look at phase field
 
-            const unsigned int idx = local_dof_indices[i];
+            const types::global_dof_index idx = local_dof_indices[i];
             if (!dof_handler.locally_owned_dofs().is_element(idx))
               continue;
 
@@ -3416,7 +3416,7 @@ FracturePhaseFieldProblem<dim>::compute_cod (
   const unsigned int dofs_per_cell = fe.dofs_per_cell;
   const unsigned int n_face_q_points = face_quadrature_formula.size();
 
-  std::vector<unsigned int> local_dof_indices(dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
 
   std::vector<Vector<double> > face_solution_values(n_face_q_points,
                                                     Vector<double>(dim+1));
@@ -3687,7 +3687,7 @@ FracturePhaseFieldProblem<dim>::compute_load ()
   const unsigned int dofs_per_cell = fe.dofs_per_cell;
   const unsigned int n_face_q_points = face_quadrature_formula.size();
 
-  std::vector<unsigned int> local_dof_indices (dofs_per_cell);
+  std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
 
   std::vector<std::vector<Tensor<1,dim> > >
   face_solution_grads (n_face_q_points, std::vector<Tensor<1,dim> > (dim+1));
@@ -3924,7 +3924,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       // refine if phase field < constant
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
-      std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+      std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
 
       for (; cell != endc; ++cell)
         if (cell->is_locally_owned())
@@ -3949,7 +3949,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       // refine if phase field < constant
       typename DoFHandler<dim>::active_cell_iterator cell =
         dof_handler.begin_active(), endc = dof_handler.end();
-      std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+      std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
 
       for (; cell != endc; ++cell)
         if (cell->is_locally_owned())
@@ -3997,7 +3997,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       {
         typename DoFHandler<dim>::active_cell_iterator cell =
           dof_handler.begin_active(), endc = dof_handler.end();
-        std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
 
         for (; cell != endc; ++cell)
           if (cell->is_locally_owned())
@@ -4037,7 +4037,7 @@ FracturePhaseFieldProblem<dim>::refine_mesh ()
       {
         typename DoFHandler<dim>::active_cell_iterator cell =
           dof_handler.begin_active(), endc = dof_handler.end();
-        std::vector<unsigned int> local_dof_indices(fe.dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
 
         unsigned int idx = 0;
         for (; cell != endc; ++cell, ++idx)
