@@ -2781,7 +2781,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
 
   // map global_dof_idx -> number of times it switched from inactive to active
   // to detect cycles
-  std::map<unsigned int, unsigned int> cycle_counter;
+  std::map<types::global_dof_index, unsigned int> cycle_counter;
 
   LA::MPI::BlockVector old_solution_relevant(partition_relevant);
   old_solution_relevant = old_solution;
