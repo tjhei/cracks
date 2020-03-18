@@ -388,7 +388,9 @@ InitialValuesSneddon<dim>::value (
 {
   // impose crack [-1,1]x[-h,h]
 
-  double l_0 = 1.0;
+  // modify the following 0. to extend the length by a factor of h in each
+  // direction:
+  double l_0 = 1.0 + 0.*_min_cell_diameter;
   double thickness = 2.0*_min_cell_diameter;
   double r_squared;
   if (dim == 2)
