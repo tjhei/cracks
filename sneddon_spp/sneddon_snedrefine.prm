@@ -19,7 +19,7 @@ subsection Problem dependent parameters
   set K reg				= 1e-8*h
   # 2.0*h
   # 0.25 * pow(h,0.5)
-  set Eps reg 				= 2.0*h #0.125*h^0.25
+  set Eps reg 				= 4.0*h #0.125*h^0.25
 
   # must be 0.0 in active set:
   set Gamma penalization		= 0.0
