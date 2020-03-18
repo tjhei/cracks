@@ -16,7 +16,7 @@ subsection Global parameters
 end
 
 subsection Problem dependent parameters
-  set K reg				= 1e-8*h
+  set K reg				= 0#1e-8*h
   # 2.0*h
   # 0.25 * pow(h,0.5)
   set Eps reg 				= 4.0*h #0.125*h^0.25
