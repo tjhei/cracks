@@ -39,6 +39,7 @@ set key bottom center
 
 set output "cod_plot.eps"
 
+set yrange [-0.0005:0.003]
 
 max(x, y) = (x > y ? x : y)
 
