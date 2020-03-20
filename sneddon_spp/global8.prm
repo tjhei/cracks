@@ -1,0 +1,45 @@
+# Listing of Example Sneddon 2d constant pressure test
+# ----------------------------------------------------
+
+subsection Global parameters
+  set Global pre-refinement steps	= 8
+  set Local pre-refinement steps  	= 0
+  set Max No of timesteps  	  	= 50
+  set Adaptive refinement cycles        = 0
+  set Timestep size			= 1.0 
+
+  set outer solver                      = active set
+  set test case                         = sneddon
+  set ref strategy                      = mix
+ 
+ set value phase field for refinement  = 0.9
+  set Output directory			= output_sneddon_spp1748_global8
+  set Output filename	    		= solution_
+
+  # Add here to read-in the grid
+end
+
+subsection Problem dependent parameters
+  set K reg				= 0
+  # 2.0*h
+  # 0.25 * pow(h,0.5)
+  set Eps reg 				= 4.0*h #0.125*h^0.25
+
+  # must be 0.0 in active set:
+  set Gamma penalization		= 0.0
+
+  # Material and problem-rhs parameters
+  set Pressure				= 1.0e-3
+  set Fracture toughness G_c		= 1.0
+  set Poisson ratio nu			= 0.2
+  set E modulus	    			= 1.0
+end 
+
+subsection Solver parameters
+  set Use Direct Inner Solver              = false
+  set Newton lower bound     		   = 1.0e-7
+  set Newton maximum steps		   = 100
+  set Decompose stress in rhs		   = 0.0
+  set Decompose stress in matrix	   = 0.0
+  set Line search maximum steps            = 10
+end
