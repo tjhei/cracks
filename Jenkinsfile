@@ -29,10 +29,11 @@ pipeline {
       }
     }
 
-    stage ("8.5") {
+
+    stage ("9.0") {
         agent  {
           docker {
-            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1-gcc5'
+            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r5-gcc5'
           }
         }
 
@@ -50,39 +51,14 @@ pipeline {
             }
           }
 
-            stage("build") {
-                steps {
-                    sh 'cmake .'
-                    sh 'make -j 4'
-                }
-            }
-
-            stage('test') {
-                steps {
-                    sh './cracks'
-                }
-            }
-        }
-	post { cleanup { cleanWs() } }
-    }
-
-
-    stage ("9.0") {
-        agent  {
-          docker {
-            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r5-gcc5'
-          }
-        }
-
-        stages {
-            stage("build") {
+          stage("build") {
                 steps {
                     sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
                     sh 'make -j 4'
                 }
-            }
+          }
 
-            stage('test') {
+          stage('test') {
                 steps {
                     sh './cracks'
                     sh 'ctest --output-on-failure -j 4 || { touch FAILED; cat tests/output-*/*diff >test.diff; } '
@@ -90,7 +66,7 @@ pipeline {
                     sh 'ctest --output-on-failure -j 4'
                     sh 'if [ -f FAILED ]; then exit 1; fi'
                 }
-            }
+          }
         }
 
         post { cleanup { cleanWs() } }
