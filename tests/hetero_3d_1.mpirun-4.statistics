@@ -1,0 +1,8 @@
+# 1: Timestep No
+# 2: Time
+# 3: DoFs
+# 4: minimum cell diameter
+# 5: Bulk Energy
+# 6: Crack Energy
+0 0.0100 6980 5.41265877e-01 9.02340697e-04 1.14477870e+01 
+1 0.0200 6980 5.41265877e-01 1.66792244e-01 1.14488149e+01
