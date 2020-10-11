@@ -233,10 +233,15 @@ class BitmapFunction : public Function<dim>
     double value (const Point<dim> &p,
                   const unsigned int /*component*/) const
     {
-      Assert(dim==2, ExcNotImplemented());
       double x = (p(0)-x1)/(x2-x1);
       double y = (p(1)-y1)/(y2-y1);
-      return minvalue + f.get_value(x,y)*(maxvalue-minvalue);
+      if (dim == 2)
+        return minvalue + f.get_value(x,y)*(maxvalue-minvalue);
+      else if (dim == 3)
+        {
+          double z = (p(2)-y1)/(y2-y1);
+          return minvalue + (f.get_value(x,y)+f.get_value(x,z)+f.get_value(z,y))*(maxvalue-minvalue)/3.0;
+        }
     }
   private:
     BitmapFile f;
@@ -1611,7 +1616,7 @@ FracturePhaseFieldProblem<dim>::setup_system ()
     constraints_update.reinit(relevant_set);
 
     set_newton_bc();
-    constraints_update.merge(constraints_hanging_nodes);
+    constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
     constraints_update.close();
   }
 
@@ -2884,7 +2889,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       }
 
       set_newton_bc();
-      constraints_update.merge(constraints_hanging_nodes);
+      constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
       constraints_update.close();
 
       int is_my_set_changed = (active_set == active_set_old) ? 0 : 1;
