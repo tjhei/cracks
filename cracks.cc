@@ -1578,8 +1578,14 @@ FracturePhaseFieldProblem<dim>::setup_system ()
 
   {
     // extract DoF counts for printing statistics:
+#if DEAL_II_VERSION_GTE(9,2,0)
+    std::vector<types::global_dof_index> dofs_per_var =
+      DoFTools::count_dofs_per_fe_block (dof_handler, sub_blocks);
+#else
     std::vector<types::global_dof_index> dofs_per_var (2);
     DoFTools::count_dofs_per_block (dof_handler, dofs_per_var, sub_blocks);
+#endif
+
     const unsigned int n_solid = dofs_per_var[0];
     const unsigned int n_phase = dofs_per_var[1];
     pcout << std::endl;
@@ -1587,8 +1593,13 @@ FracturePhaseFieldProblem<dim>::setup_system ()
           << " = " << dof_handler.n_dofs() << std::endl;
   }
 
+#if DEAL_II_VERSION_GTE(9,2,0)
+  std::vector<types::global_dof_index> dofs_per_block =
+    DoFTools::count_dofs_per_fe_block (dof_handler, introspection.components_to_blocks);
+#else
   std::vector<types::global_dof_index> dofs_per_block (introspection.n_blocks);
   DoFTools::count_dofs_per_block (dof_handler, dofs_per_block, introspection.components_to_blocks);
+#endif
 
   partition.clear();
   compatibility::split_by_block(dofs_per_block, dof_handler.locally_owned_dofs(), partition);
@@ -3298,7 +3309,7 @@ int value_to_bucket(double x, unsigned int n_buckets)
 {
   const double x1 = -1.5;
   const double x2 = 1.5;
-  return std::floor((x-x1)/(x2-x1)*n_buckets+0.5);
+  return static_cast<int>(std::floor((x-x1)/(x2-x1)*n_buckets+0.5));
 }
 
 double bucket_to_value(unsigned int idx, unsigned int n_buckets)
