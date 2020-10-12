@@ -1529,7 +1529,11 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 
 
   if (test_case == TestCase::multiple_het)
-    func_emodulus = new BitmapFunction<dim>("test.pgm",0,4,0,4,E_modulus,10.0*E_modulus);
+    {
+      const std::string filename =
+        Utilities::replace_in_string("$SRC/test.pgm","$SRC", SOURCE_DIR);
+      func_emodulus = new BitmapFunction<dim>(filename,0,4,0,4,E_modulus,10.0*E_modulus);
+    }
 
 
 
