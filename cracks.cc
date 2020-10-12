@@ -605,7 +605,22 @@ InitialValuesMultipleHet<dim>::value (
   bool example_3 = true;
   if (component == n_components-1)
     {
-      if (example_3)
+      if (dim == 3)
+        {
+          if (((p(0) >= 2.6 - width/2.0) && (p(0) <= 2.6 + width/2.0))
+              && ((p(1) >= 3.8 - width/2.0) && (p(1) <= 5.5 + width/2.0))
+              && (p(2) >=4 - width/2.0) && (p(2) <=4 + width/2.0)
+             )
+            return 0.0;
+          else if (((p(0) >= 5.5 - width/2.0) && (p(0) <= 7.0 + width/2.0))
+                   && ((p(1) >= 4.0 - width/2.0) && (p(1) <= 4.0 + width/2.0))
+                   && (p(2) >=6 - width/2.0) && (p(2) <=6 + width/2.0)
+                  )
+            return 0.0;
+          else
+            return 1.0;
+        }
+      else if (example_3)
         {
           // Example 3 of our paper
           if (((p(0) >= 2.5 - width/2.0) && (p(0) <= 2.5 + width/2.0))
