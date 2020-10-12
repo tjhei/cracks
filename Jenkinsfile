@@ -82,7 +82,7 @@ pipeline {
         stages {
             stage("build") {
                 steps {
-                    sh 'cmake .'
+                    sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
                     sh 'make -j 4'
                 }
             }
@@ -107,7 +107,7 @@ pipeline {
         stages {
             stage("build") {
                 steps {
-                    sh 'cmake .'
+                    sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
                     sh 'make -j 4'
                 }
             }
