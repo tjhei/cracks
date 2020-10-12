@@ -92,6 +92,31 @@ pipeline {
                     sh './cracks'
                 }
             }
+        }
+
+        post { cleanup { cleanWs() } }
+    }
+
+    stage ("9.2") {
+        agent  {
+          docker {
+            image 'tjhei/dealii:v9.2.0-full-v9.2.0-r2-gcc5'
+          }
+        }
+
+        stages {
+            stage("build") {
+                steps {
+                    sh 'cmake .'
+                    sh 'make -j 4'
+                }
+            }
+
+            stage('test') {
+                steps {
+                    sh './cracks'
+                }
+            }
 
             stage("end") {
               steps {
