@@ -1166,7 +1166,7 @@ class FracturePhaseFieldProblem
 
     unsigned int n_global_pre_refine, n_local_pre_refine, n_refinement_cycles;
 
-    double lower_bound_newton_residuum;
+    double lower_bound_newton_residual;
     unsigned int max_no_newton_steps;
     double upper_newton_rho;
     unsigned int max_no_line_search_steps;
@@ -1560,7 +1560,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
   direct_solver = prm.get_bool("Use Direct Inner Solver");
 
   // Newton tolerances and maximum steps
-  lower_bound_newton_residuum = prm.get_double("Newton lower bound");
+  lower_bound_newton_residual = prm.get_double("Newton lower bound");
   max_no_newton_steps = prm.get_integer("Newton maximum steps");
 
 
@@ -2983,7 +2983,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
 
       ++newton_step;
 
-      if (newton_residual < lower_bound_newton_residuum
+      if (newton_residual < lower_bound_newton_residual
           && num_changed == 0
          )
         {
@@ -3023,7 +3023,7 @@ FracturePhaseFieldProblem<dim>::newton_iteration (
 
   // Line search parameters
   unsigned int line_search_step = 0;
-  double new_newton_residuum = 0.0;
+  double new_newton_residual = 0.0;
 
   // Application of the initial boundary conditions to the
   // variational equations:
@@ -3031,29 +3031,29 @@ FracturePhaseFieldProblem<dim>::newton_iteration (
   assemble_nl_residual();
   constraints_update.set_zero(system_pde_residual);
 
-  double newton_residuum = system_pde_residual.linfty_norm();
-  double old_newton_residuum = newton_residuum;
+  double newton_residual = system_pde_residual.linfty_norm();
+  double old_newton_residual = newton_residual;
   unsigned int newton_step = 1;
   unsigned int no_linear_iterations = 0;
 
-  pcout << "0\t" << std::scientific << newton_residuum << std::endl;
+  pcout << "0\t" << std::scientific << newton_residual << std::endl;
 
-  while (newton_residuum > lower_bound_newton_residuum
+  while (newton_residual > lower_bound_newton_residual
          && newton_step < max_no_newton_steps)
     {
-      old_newton_residuum = newton_residuum;
+      old_newton_residual = newton_residual;
 
       assemble_nl_residual();
       constraints_update.set_zero(system_pde_residual);
-      newton_residuum = system_pde_residual.linfty_norm();
+      newton_residual = system_pde_residual.linfty_norm();
 
-      if (newton_residuum < lower_bound_newton_residuum)
+      if (newton_residual < lower_bound_newton_residual)
         {
-          pcout << '\t' << std::scientific << newton_residuum << std::endl;
+          pcout << '\t' << std::scientific << newton_residual << std::endl;
           break;
         }
 
-      if (newton_step==1 || newton_residuum / old_newton_residuum > nonlinear_rho)
+      if (newton_step==1 || newton_residual / old_newton_residual > nonlinear_rho)
         assemble_system();
 
       // Solve Ax = b
@@ -3066,29 +3066,29 @@ FracturePhaseFieldProblem<dim>::newton_iteration (
 
           assemble_nl_residual();
           constraints_update.set_zero(system_pde_residual);
-          new_newton_residuum = system_pde_residual.linfty_norm();
+          new_newton_residual = system_pde_residual.linfty_norm();
 
-          if (new_newton_residuum < newton_residuum)
+          if (new_newton_residual < newton_residual)
             break;
           else
             solution -= newton_update;
 
           newton_update *= line_search_damping;
         }
-      old_newton_residuum = newton_residuum;
-      newton_residuum = new_newton_residuum;
+      old_newton_residual = newton_residual;
+      newton_residual = new_newton_residual;
 
       pcout << std::setprecision(5) << newton_step << '\t' << std::scientific
-            << newton_residuum;
+            << newton_residual;
 
       if (!direct_solver)
         pcout << " (" << system_pde_residual.block(0).linfty_norm() << '|'
               << system_pde_residual.block(1).linfty_norm() << ")";
 
       pcout << '\t' << std::scientific
-            << newton_residuum / old_newton_residuum << '\t';
+            << newton_residual / old_newton_residual << '\t';
 
-      if (newton_step==1 || newton_residuum / old_newton_residuum > nonlinear_rho)
+      if (newton_step==1 || newton_residual / old_newton_residual > nonlinear_rho)
         pcout << "rebuild" << '\t';
       else
         pcout << " " << '\t';
@@ -3098,7 +3098,7 @@ FracturePhaseFieldProblem<dim>::newton_iteration (
 
       // Terminate if nothing is solved anymore. After this,
       // we cut the time step.
-      if ((newton_residuum/old_newton_residuum > upper_newton_rho) && (newton_step > 1)
+      if ((newton_residual/old_newton_residual > upper_newton_rho) && (newton_step > 1)
          )
         {
           break;
@@ -3111,14 +3111,14 @@ FracturePhaseFieldProblem<dim>::newton_iteration (
     }
 
 
-  if ((newton_residuum > lower_bound_newton_residuum) && (newton_step == max_no_newton_steps))
+  if ((newton_residual > lower_bound_newton_residual) && (newton_step == max_no_newton_steps))
     {
       pcout << "Newton iteration did not converge in " << newton_step
             << " steps :-(" << std::endl;
       throw SolverControl::NoConvergence(0,0);
     }
 
-  return newton_residuum/old_newton_residuum;
+  return newton_residual/old_newton_residual;
 }
 
 template <int dim>
