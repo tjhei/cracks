@@ -2810,9 +2810,9 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
   double newton_residual = system_pde_residual.l2_norm();
 
   double old_newton_residual = newton_residual;
-  unsigned int newton_step = 1;
+  unsigned int newton_step = 0;
 
-  pcout << "0\t\t" << std::scientific << newton_residual << std::endl;
+  pcout << "0\t\t\t" << std::scientific << newton_residual << std::endl;
   std::cout.unsetf(std::ios_base::floatfield);
 
   active_set.clear();
@@ -2825,13 +2825,12 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
   LA::MPI::BlockVector old_solution_relevant(partition_relevant);
   old_solution_relevant = old_solution;
 
-  unsigned int it=0;
+  unsigned int sum_lin_it = 0;
 
   double new_newton_residual = 0.0;
   while (true)
     {
-      ++it;
-      pcout << it << std::flush;
+      pcout << newton_step+1 << std::flush;
 
       IndexSet active_set_old = active_set;
       unsigned int n_cycling_dofs = 0;
@@ -2933,6 +2932,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       assemble_system();
       constraints_update.set_zero(system_pde_residual);
       unsigned int no_linear_iterations = solve();
+      sum_lin_it += no_linear_iterations;
 
       LA::MPI::BlockVector saved_solution = solution;
 
@@ -2981,19 +2981,23 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       old_newton_residual = newton_residual;
       newton_residual = new_newton_residual;
 
-      // Updates
-      newton_step++;
+      ++newton_step;
 
       if (newton_residual < lower_bound_newton_residuum
           && num_changed == 0
          )
         {
+          // convergence achieved:
+          pcout << "\tNewton iterations: " << newton_step
+                << " total linear iterations: " << sum_lin_it
+                << std::endl;
+
           break;
         }
 
-      if (it>=max_no_newton_steps)
+      if (newton_step>=max_no_newton_steps)
         {
-          pcout << "Newton iteration did not converge in " << it
+          pcout << "Newton iteration did not converge in " << newton_step
                 << " steps." << std::endl;
           throw SolverControl::NoConvergence(0,0);
         }
