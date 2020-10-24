@@ -233,10 +233,19 @@ class BitmapFunction : public Function<dim>
     double value (const Point<dim> &p,
                   const unsigned int /*component*/) const
     {
-      Assert(dim==2, ExcNotImplemented());
       double x = (p(0)-x1)/(x2-x1);
       double y = (p(1)-y1)/(y2-y1);
-      return minvalue + f.get_value(x,y)*(maxvalue-minvalue);
+      if (dim == 2)
+        return minvalue + f.get_value(x,y)*(maxvalue-minvalue);
+      else if (dim == 3)
+        {
+          double z = (p(2)-y1)/(y2-y1);
+          return minvalue + (
+                   f.get_value(x/10.0,(y-z)/10.0)
+                   +0.5*f.get_value((x+y)/2.0,(z+x)/2.0)
+                   +0.25*f.get_value(fmod(z+x-y,10.0), fmod(y+x,10.0))
+                 )*(maxvalue-minvalue)/2.25;
+        }
     }
   private:
     BitmapFile f;
@@ -600,7 +609,22 @@ InitialValuesMultipleHet<dim>::value (
   bool example_3 = true;
   if (component == n_components-1)
     {
-      if (example_3)
+      if (dim == 3)
+        {
+          if (((p(0) >= 2.6 - width/2.0) && (p(0) <= 2.6 + width/2.0))
+              && ((p(1) >= 3.8 - width/2.0) && (p(1) <= 5.5 + width/2.0))
+              && (p(2) >= 4.0 - width/2.0) && (p(2) <= 4.0 + width/2.0)
+             )
+            return 0.0;
+          else if (((p(0) >= 5.5 - width/2.0) && (p(0) <= 7.0 + width/2.0))
+                   && ((p(1) >= 4.0 - width/2.0) && (p(1) <= 4.0 + width/2.0))
+                   && (p(2) >= 6.0 - width/2.0) && (p(2) <= 6.0 + width/2.0)
+                  )
+            return 0.0;
+          else
+            return 1.0;
+        }
+      else if (example_3)
         {
           // Example 3 of our paper
           if (((p(0) >= 2.5 - width/2.0) && (p(0) <= 2.5 + width/2.0))
@@ -1524,7 +1548,11 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
 
 
   if (test_case == TestCase::multiple_het)
-    func_emodulus = new BitmapFunction<dim>("test.pgm",0,4,0,4,E_modulus,10.0*E_modulus);
+    {
+      const std::string filename =
+        Utilities::replace_in_string("$SRC/test.pgm","$SRC", SOURCE_DIR);
+      func_emodulus = new BitmapFunction<dim>(filename,0,10,0,10,E_modulus,10.0*E_modulus);
+    }
 
 
 
@@ -1622,7 +1650,7 @@ FracturePhaseFieldProblem<dim>::setup_system ()
     constraints_update.reinit(relevant_set);
 
     set_newton_bc();
-    constraints_update.merge(constraints_hanging_nodes);
+    constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
     constraints_update.close();
   }
 
@@ -2895,7 +2923,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       }
 
       set_newton_bc();
-      constraints_update.merge(constraints_hanging_nodes);
+      constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
       constraints_update.close();
 
       int is_my_set_changed = (active_set == active_set_old) ? 0 : 1;
@@ -3825,7 +3853,6 @@ FracturePhaseFieldProblem<dim>::determine_mesh_dependent_parameters()
   if (test_case == TestCase::miehe_tension
       || test_case == TestCase::miehe_shear
       || test_case == TestCase::multiple_homo
-      || test_case == TestCase::multiple_het
       || test_case == TestCase::three_point_bending)
     {
       min_cell_diameter = 0.0;
@@ -4159,9 +4186,12 @@ FracturePhaseFieldProblem<dim>::run ()
 
   set_runtime_parameters();
   setup_system();
+  determine_mesh_dependent_parameters();
 
   for (unsigned int i = 0; i < n_local_pre_refine; ++i)
     {
+      pcout << "Prerefinement step with h= " << min_cell_diameter << std::endl;
+
       ConstraintMatrix constraints;
       constraints.close();
 

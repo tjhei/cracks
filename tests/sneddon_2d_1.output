@@ -3,6 +3,7 @@ Running on 1 cores
 Cells:	100
 
 DoFs: 242 solid + 121 phase = 363
+Prerefinement step with h= 2.82843
 
 DoFs: 302 solid + 151 phase = 453
 
