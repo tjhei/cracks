@@ -61,9 +61,9 @@ pipeline {
           stage('test') {
                 steps {
                     sh './cracks'
-                    sh 'ctest --output-on-failure -j 4 || { touch FAILED; cat tests/output-*/*diff >test.diff; } '
+                    sh 'ctest --output-on-failure || { touch FAILED; cat tests/output-*/*diff >test.diff; } '
                     archiveArtifacts artifacts: 'test.diff', fingerprint: true, allowEmptyArchive: true
-                    sh 'ctest --output-on-failure -j 4'
+                    sh 'ctest --output-on-failure'
                     sh 'if [ -f FAILED ]; then exit 1; fi'
                 }
           }
