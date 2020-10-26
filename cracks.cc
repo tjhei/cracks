@@ -2,18 +2,15 @@
   This code is licensed under the "GNU GPL version 2 or later". See
   LICENSE file or https://www.gnu.org/licenses/gpl-2.0.html
 
-  Copyright 2013-2019: Thomas Wick and Timo Heister
+  Copyright 2013-2020: Thomas Wick and Timo Heister
 */
 
-// Main features of the program
-// ----------------------------
-// 1. Geomechanics: Crack with phase-field
-// 2. Monolithic approach with extrapolation in time of
-//    the phase-field variable in the u-equation
-// 3. Primal dual active set strategy to treat
-//    crack irreversibility constraint
-// 4. Predictor-corrector mesh adaptivity
-// 5. Parallel computing using MPI, p4est, and trilinos
+// Main features of this crack phase-field program
+// -----------------------------------------------
+// 1. Quasi-monolithic formulation for the displacement-phase-field system
+// 2. Primal dual active set strategy to treat crack irreversibility
+// 3. Predictor-corrector mesh adaptivity
+// 4. Parallel computing using MPI, p4est, and trilinos
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
