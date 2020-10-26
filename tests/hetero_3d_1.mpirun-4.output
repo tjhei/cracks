@@ -6,16 +6,13 @@ DoFs: 2187 solid + 729 phase = 2916
 Prerefinement step with h= 2.16506
 
 DoFs: 3966 solid + 1322 phase = 5288
-Prerefinement step with h= 1.08253
-
-DoFs: 7014 solid + 2338 phase = 9352
 
 ===================================================================
 Parameters
 ==========
-h (min):           0.541266
+h (min):           1.08253
 k:                 0
-eps:               0.75
+eps:               1.5
 G_c:               1
 gamma penal:       0
 Poisson nu:        0.2
@@ -28,40 +25,39 @@ Write solution 0
 
 
 =======================================================================
-Timestep 0: 0 (0.01)   Cells: 1667   DoFs: 9352
+Timestep 0: 0 (0.01)   Cells: 932   DoFs: 5288
 -----------------------------------------------------------------------
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
-0			8.326137e+00
-1	169	0	2.533784e-04	3.043169e-05	0	15
-2	120	0	1.041334e-08	4.109797e-05	0	16
-3	67	0	5.277105e-10	5.067639e-02	0	16
-4	56	0	4.250156e-12	8.053955e-03	0	16
-5	56	0	4.532422e-14	1.066413e-02	0	16
-	Newton iterations: 5 total linear iterations: 79
+0			2.772590e+01
+1	178	0	4.947208e-03	1.784327e-04	0	6
+2	36	0	3.637191e-04	7.352008e-02	0	2
+3	36	0	6.343362e-08	1.744028e-04	0	5
+	Newton iterations: 3 total linear iterations: 13
 
-No 0 time 0.01 bulk energy: 0.00208421 crack energy: 8.23453
+No 0 time 0.01 bulk energy: 0.00959926 crack energy: 22.1998
 Write solution 1
 	as output-hetero_3d_1-np1/solution_00001.visit
 
 
 =======================================================================
-Timestep 1: 0.01 (0.01)   Cells: 1667   DoFs: 9352
+Timestep 1: 0.01 (0.01)   Cells: 932   DoFs: 5288
 -----------------------------------------------------------------------
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
-0			4.554632e+01
-1	1122	0	7.691822e-03	1.688791e-04	0	11
-2	712	0	6.099773e-10	7.930205e-08	0	20
-3	675	0	1.488257e-10	2.439856e-01	0	18
-4	675	0	9.814690e-14	6.594755e-04	0	19
-	Newton iterations: 4 total linear iterations: 68
+0			9.870742e+01
+1	839	0	4.659250e-02	4.720263e-04	0	6
+2	639	0	2.335913e-06	5.013496e-05	0	5
+3	534	0	1.032101e-06	4.418405e-01	0	1
+4	520	0	6.637548e-08	6.431103e-02	0	2
+5	520	0	8.569504e-13	1.291065e-05	0	6
+	Newton iterations: 5 total linear iterations: 20
 
-No 1 time 0.02 bulk energy: 0.16235 crack energy: 8.23587
+No 1 time 0.02 bulk energy: 0.626501 crack energy: 22.207
 Write solution 2
 	as output-hetero_3d_1-np1/solution_00002.visit
 
-Finishing time step loop: 0.00673077
+Finishing time step loop: 0.0193922
 
 
 +---------------------------------------------+------------+------------+
