@@ -4,7 +4,7 @@
 subsection Global parameters
   set Dimension = 3
   set Global pre-refinement steps	= 3
-  set Local pre-refinement steps  	= 2
+  set Local pre-refinement steps  	= 1
   set Adaptive refinement cycles        = 0
   set Max No of timesteps  	  	= 1
   set Timestep size			= 0.01
@@ -23,7 +23,7 @@ end
 
 subsection Problem dependent parameters
   set K reg				= 0 #1e-10*h
-  set Eps reg				= 0.75
+  set Eps reg				= 1.5
   # must be 0.0 in active set
   set Gamma penalization		= 0
 
