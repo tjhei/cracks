@@ -6,12 +6,12 @@ subsection Global parameters
   set Local pre-refinement steps  	= 2
   set Max No of timesteps  	  	= 50
   set Adaptive refinement cycles        = 3
-  set Timestep size			= 1.0 
+  set Timestep size			= 1.0
 
   set outer solver                      = active set
   set test case                         = sneddon
   set ref strategy                      = fixed preref sneddon
- 
+
  set value phase field for refinement  = 0.9
 
   # Add here to read-in the grid
@@ -21,7 +21,7 @@ subsection Problem dependent parameters
   set K reg				= 1e-8*h
   # 2.0*h
   # 0.25 * pow(h,0.5)
-  set Eps reg 				= 0.125*h^0.25
+  set Eps reg 				= 2.0*h
 
   # must be 0.0 in active set:
   set Gamma penalization		= 0.0
@@ -31,7 +31,7 @@ subsection Problem dependent parameters
   set Fracture toughness G_c		= 1.0
   set Poisson ratio nu			= 0.2
   set E modulus	    			= 1.0
-end 
+end
 
 subsection Solver parameters
   set Use Direct Inner Solver              = false
