@@ -3289,7 +3289,7 @@ FracturePhaseFieldProblem<dim>::compute_point_value (
       VectorTools::point_value(dofh, vector, p, tmp_vector);
       value = tmp_vector(component);
     }
-  catch (typename VectorTools::ExcPointNotAvailableHere e)
+  catch (typename VectorTools::ExcPointNotAvailableHere &e)
     {
     }
 
@@ -4351,7 +4351,7 @@ FracturePhaseFieldProblem<dim>::run ()
                     break;
 
                   }
-                catch (SolverControl::NoConvergence e)
+                catch (SolverControl::NoConvergence &e)
                   {
                     pcout << "Solver did not converge! Adjusting time step to " << timestep/10 << std::endl;
                   }
@@ -4415,7 +4415,7 @@ FracturePhaseFieldProblem<dim>::run ()
 
 
                   }
-                catch (SolverControl::NoConvergence e)
+                catch (SolverControl::NoConvergence &e)
                   {
                     pcout << "Solver did not converge! Adjusting time step." << std::endl;
                   }
