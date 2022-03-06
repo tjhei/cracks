@@ -34,19 +34,11 @@ using ConstraintMatrix = dealii::AffineConstraints<double>;
 #  include <deal.II/grid/tria_boundary_lib.h>
 #endif
 
-#if DEAL_II_VERSION_GTE(9,0,0)
 namespace compatibility
 {
   template<int dim>
   using ZeroFunction = dealii::Functions::ZeroFunction<dim>;
 }
-#else
-namespace compatibility
-{
-  template<int dim>
-  using ZeroFunction = dealii::ZeroFunction<dim>;
-}
-#endif
 
 // This makes IDEs like QtCreator happy (note that this is defined in cmake):
 #ifndef SOURCE_DIR
