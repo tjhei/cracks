@@ -2146,16 +2146,13 @@ FracturePhaseFieldProblem<dim>::assemble_system (bool residual_only)
     }
   const double current_pressure = func_pressure.value(Point<1>(time), 0);
 
-  LA::MPI::BlockVector rel_solution(
-    partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
-  LA::MPI::BlockVector rel_old_solution(
-    partition_relevant);
+  LA::MPI::BlockVector rel_old_solution(partition, partition_relevant, mpi_com);
   rel_old_solution = old_solution;
 
-  LA::MPI::BlockVector rel_old_old_solution(
-    partition_relevant);
+  LA::MPI::BlockVector rel_old_old_solution(partition, partition_relevant, mpi_com);
   rel_old_old_solution = old_old_solution;
 
   QGauss<dim> quadrature_formula(fe.degree + 2);
@@ -2787,7 +2784,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
 {
   pcout << "It.\t#A.Set\t#CycDoF\tResidual\tReduction\tLSrch\t#LinIts" << std::endl;
 
-  LA::MPI::BlockVector residual_relevant(partition_relevant);
+  LA::MPI::BlockVector residual_relevant(partition, partition_relevant, mpi_com);
 
   set_initial_bc(time);
   constraints_hanging_nodes.distribute(solution);
@@ -2811,7 +2808,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
   // to detect cycles
   std::map<types::global_dof_index, unsigned int> cycle_counter;
 
-  LA::MPI::BlockVector old_solution_relevant(partition_relevant);
+  LA::MPI::BlockVector old_solution_relevant(partition, partition_relevant, mpi_com);
   old_solution_relevant = old_solution;
 
   unsigned int sum_lin_it = 0;
@@ -2831,7 +2828,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
         constraints_update.clear();
         unsigned int owned_active_set_dofs = 0;
 
-        LA::MPI::BlockVector solution_relevant(partition_relevant);
+        LA::MPI::BlockVector solution_relevant(partition, partition_relevant, mpi_com);
         solution_relevant = solution;
 
         std::vector<types::global_dof_index> local_dof_indices(fe.dofs_per_cell);
@@ -3150,7 +3147,7 @@ FracturePhaseFieldProblem<dim>::output_results () const
   static int refinement_cycle=-1;
   ++refinement_cycle;
 
-  LA::MPI::BlockVector relevant_solution(partition_relevant);
+  LA::MPI::BlockVector relevant_solution(partition, partition_relevant, mpi_com);
   relevant_solution = solution;
 
   SneddonExactPostProc<dim> exact_sol_sneddon(introspection.n_components, alpha_eps);
@@ -3192,19 +3189,19 @@ FracturePhaseFieldProblem<dim>::output_results () const
   data_out.add_data_vector(subdomain, "subdomain");
 
 
-  TrilinosWrappers::MPI::Vector active_set_vector;
+  TrilinosWrappers::MPI::BlockVector active_set_vector;
 
   if (outer_solver == OuterSolverType::active_set)
     {
       IndexSet locally_relevant_dofs;
       DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
 
-      TrilinosWrappers::MPI::Vector distributed_active_set_vector(
-        dof_handler.locally_owned_dofs(), MPI_COMM_WORLD);
+      TrilinosWrappers::MPI::BlockVector distributed_active_set_vector(
+        partition, mpi_com);
       for (const auto index : active_set)
         distributed_active_set_vector[index] = 1.;
 
-      active_set_vector.reinit(locally_relevant_dofs, MPI_COMM_WORLD);
+      active_set_vector.reinit(partition, partition_relevant, mpi_com);
       active_set_vector = distributed_active_set_vector;
 
       data_out.add_data_vector(dof_handler, active_set_vector,
@@ -3295,7 +3292,7 @@ FracturePhaseFieldProblem<dim>::compute_point_stress ()
   // Evaluation point
   Point<dim> p1(0.0,2.0);
 
-  LA::MPI::BlockVector rel_solution(partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
   // first find the cell in which this point
@@ -3363,7 +3360,7 @@ FracturePhaseFieldProblem<dim>::compute_cod_array ()
   const QIterated<dim> quadrature_formula (QMidpoint<1>(), 100 );
   const unsigned int n_q_points = quadrature_formula.size();
 
-  LA::MPI::BlockVector rel_solution(partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
   FEValues<dim> fe_values(fe, quadrature_formula,
@@ -3467,7 +3464,7 @@ FracturePhaseFieldProblem<dim>::compute_cod (
                                    | update_normal_vectors | update_JxW_values);
 
 
-  LA::MPI::BlockVector rel_solution(partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
   const unsigned int dofs_per_cell = fe.dofs_per_cell;
@@ -3566,7 +3563,7 @@ FracturePhaseFieldProblem<dim>::compute_tcv ()
   const QGauss<dim> quadrature (fe.degree+2);
   const unsigned int n_q_points = quadrature.size();
 
-  LA::MPI::BlockVector rel_solution(partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
   FEValues<dim> fe_values(fe, quadrature,
@@ -3640,7 +3637,7 @@ FracturePhaseFieldProblem<dim>::compute_energy()
   typename DoFHandler<dim>::active_cell_iterator cell =
     dof_handler.begin_active(), endc = dof_handler.end();
 
-  LA::MPI::BlockVector rel_solution(partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
   std::vector<double> phase_field_values(n_q_points);
@@ -3751,7 +3748,7 @@ FracturePhaseFieldProblem<dim>::compute_load ()
 
   Tensor<1,dim> load_value;
 
-  LA::MPI::BlockVector rel_solution(partition_relevant);
+  LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
   rel_solution = solution;
 
   const Tensor<2, dim> Identity =
@@ -3903,7 +3900,7 @@ template <int dim>
 bool
 FracturePhaseFieldProblem<dim>::refine_mesh ()
 {
-  LA::MPI::BlockVector relevant_solution(partition_relevant);
+  LA::MPI::BlockVector relevant_solution(partition, partition_relevant, mpi_com);
   relevant_solution = solution;
 
   if (refinement_strategy == RefinementStrategy::fixed_preref_sneddon)
@@ -4510,8 +4507,7 @@ FracturePhaseFieldProblem<dim>::run ()
               ExactPhiSneddon<dim> exact(introspection.n_components, alpha_eps);
               Vector<float> error (triangulation.n_active_cells());
 
-              LA::MPI::BlockVector rel_solution(
-                partition_relevant);
+              LA::MPI::BlockVector rel_solution(partition, partition_relevant, mpi_com);
               rel_solution = solution;
 
               if (test_case == TestCase::sneddon)
