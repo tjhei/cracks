@@ -3356,7 +3356,6 @@ FracturePhaseFieldProblem<dim>::compute_cod_array ()
 
   // this yields 100 quadrature points evenly distributed in the interior of the cell.
   // We avoid points on the faces, as they would be counted more than once.
-  const unsigned int n_reps = 50 + 100.0 * min_cell_diameter / (1.0/n_buckets);
   const QIterated<dim> quadrature_formula (QMidpoint<1>(), 100 );
   const unsigned int n_q_points = quadrature_formula.size();
 
