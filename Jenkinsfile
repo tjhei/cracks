@@ -61,10 +61,6 @@ pipeline {
           stage('test') {
                 steps {
                     sh './cracks'
-                    sh 'ctest --output-on-failure || { touch FAILED; cat tests/output-*/*diff >test.diff; } '
-                    archiveArtifacts artifacts: 'test.diff', fingerprint: true, allowEmptyArchive: true
-                    sh 'ctest --output-on-failure'
-                    sh 'if [ -f FAILED ]; then exit 1; fi'
                 }
           }
         }
@@ -117,16 +113,59 @@ pipeline {
                     sh './cracks'
                 }
             }
-
-            stage("end") {
-              steps {
-                githubNotify context: 'CI', description: 'success!',  status: 'SUCCESS'
-              }
-            }
         }
 
         post { cleanup { cleanWs() } }
     }
+
+    stage ("9.4") {
+        agent  {
+          docker {
+            image 'tjhei/dealii:v9.4.1-full-v9.4.1-r1-ubuntu20.04'
+          }
+        }
+
+        stages {
+          stage("indent") {
+            steps {
+                sh './contrib/indent'
+                sh 'git diff > changes.diff'
+                archiveArtifacts artifacts: 'changes.diff', fingerprint: true
+                sh '''
+                    git diff --exit-code || \
+                    { echo "Please check indentation!"; exit 1; }
+                '''
+                githubNotify context: 'indent', description: '',  status: 'SUCCESS'
+            }
+          }
+
+          stage("build") {
+                steps {
+                    sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
+                    sh 'make -j 4'
+                }
+          }
+
+          stage('test') {
+                steps {
+                    sh './cracks'
+                    sh 'ctest --output-on-failure || { touch FAILED; cat tests/output-*/*diff >test.diff; } '
+                    archiveArtifacts artifacts: 'test.diff', fingerprint: true, allowEmptyArchive: true
+                    sh 'ctest --output-on-failure'
+                    sh 'if [ -f FAILED ]; then exit 1; fi'
+                }
+          }
+
+          stage("end") {
+              steps {
+                githubNotify context: 'CI', description: 'success!',  status: 'SUCCESS'
+              }
+          }
+        }
+
+        post { cleanup { cleanWs() } }
+    }
+
   }
 
 }
