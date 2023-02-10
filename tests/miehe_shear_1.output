@@ -28,9 +28,9 @@ Timestep 0: 0 (0.001)   Cells: 256   DoFs: 891
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.179919e+02
 1	25	0	1.564036e-01	4.918479e-04	0	1
-2	243	0	2.709152e-13	1.732154e-12	0	1
-3	0	0	2.104085e-13	7.766583e-01	0	1
-4	0	0	2.103557e-13	9.997490e-01	5	1
+2	243	0	2.992976e-13	1.913623e-12	0	1
+3	0	0	2.456586e-13	8.207838e-01	0	1
+4	0	0	2.175968e-13	8.857692e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 0 time 0.001 bulk energy: 0.0322837 crack energy: 8.57737e-05  Load x: 64.911
@@ -45,10 +45,10 @@ Timestep 1: 0.001 (0.001)   Cells: 256   DoFs: 891
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.168573e+02
 1	263	0	9.060624e-02	2.859528e-04	0	1
-2	71	0	6.099538e-11	6.731918e-10	0	1
-3	11	0	5.070830e-13	8.313466e-03	0	1
-4	8	0	4.151597e-13	8.187213e-01	0	1
-5	8	0	3.954777e-13	9.525918e-01	0	1
+2	71	0	6.098944e-11	6.731263e-10	0	1
+3	11	0	6.149919e-13	1.008358e-02	0	1
+4	8	0	4.865852e-13	7.912058e-01	0	1
+5	8	0	4.360402e-13	8.961231e-01	0	1
 	Newton iterations: 5 total linear iterations: 5
 
 No 1 time 0.002 bulk energy: 0.128448 crack energy: 0.00036481  Load x: 129.566
@@ -62,10 +62,10 @@ Timestep 2: 0.002 (0.001)   Cells: 256   DoFs: 891
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.166783e+02
-1	131	0	8.917828e-02	2.816053e-04	0	1
-2	75	0	1.588195e-10	1.780921e-09	0	1
-3	0	0	7.442212e-13	4.685957e-03	0	1
-4	0	0	7.001100e-13	9.407283e-01	0	1
+1	141	0	8.924927e-02	2.818294e-04	0	1
+2	69	0	1.486645e-10	1.665723e-09	0	1
+3	0	0	1.039594e-12	6.992884e-03	0	1
+4	0	0	8.443704e-13	8.122119e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 2 time 0.003 bulk energy: 0.285204 crack energy: 0.00183238  Load x: 193.813
@@ -79,10 +79,10 @@ Timestep 3: 0.003 (0.001)   Cells: 256   DoFs: 891
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.147674e+02
-1	129	0	8.852352e-02	2.812347e-04	0	1
-2	66	0	2.194745e-09	2.479279e-08	0	1
-3	0	0	9.163478e-13	4.175191e-04	0	1
-4	0	0	8.106877e-13	8.846943e-01	0	1
+1	131	0	8.854502e-02	2.813030e-04	0	1
+2	67	0	2.126052e-09	2.401097e-08	0	1
+3	0	0	1.121299e-12	5.274091e-04	0	1
+4	0	0	9.575369e-13	8.539532e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 3 time 0.004 bulk energy: 0.497561 crack energy: 0.0058171  Load x: 257.017
@@ -96,10 +96,10 @@ Timestep 4: 0.004 (0.001)   Cells: 256   DoFs: 891
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.128247e+02
-1	131	0	8.814439e-02	2.817692e-04	0	1
-2	66	0	7.468608e-09	8.473152e-08	0	1
-3	0	0	1.403850e-12	1.879667e-04	0	1
-4	0	0	1.232870e-12	8.782062e-01	0	1
+1	130	0	8.832144e-02	2.823352e-04	0	1
+2	68	0	7.121997e-09	8.063724e-08	0	1
+3	0	0	1.601060e-12	2.248049e-04	0	1
+4	0	0	1.337417e-12	8.353323e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 4 time 0.005 bulk energy: 0.758575 crack energy: 0.0142713  Load x: 318.969
@@ -113,10 +113,10 @@ Timestep 5: 0.005 (0.001)   Cells: 256   DoFs: 891
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.105996e+02
-1	132	0	9.007763e-02	2.900121e-04	0	1
-2	68	0	4.137646e-08	4.593423e-07	0	1
-3	0	0	1.578459e-12	3.814873e-05	0	1
-4	0	0	1.386528e-12	8.784059e-01	0	1
+1	139	0	9.009785e-02	2.900772e-04	0	1
+2	67	0	3.679274e-08	4.083643e-07	0	1
+3	0	0	1.778615e-12	4.834146e-05	0	1
+4	0	0	1.520865e-12	8.550839e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 5 time 0.006 bulk energy: 1.05935 crack energy: 0.0298397  Load x: 379.169
@@ -130,10 +130,10 @@ Timestep 6: 0.006 (0.001)   Cells: 256   DoFs: 891
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.081895e+02
-1	134	0	9.154231e-02	2.970325e-04	0	1
-2	66	0	6.769080e-08	7.394483e-07	0	1
-3	0	0	1.709208e-12	2.525023e-05	0	1
-4	0	0	1.629648e-12	9.534516e-01	0	1
+1	127	0	9.185016e-02	2.980314e-04	0	1
+2	65	0	6.651816e-08	7.242030e-07	0	1
+3	0	0	2.151099e-12	3.233852e-05	0	1
+4	0	0	1.836259e-12	8.536377e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 DoFs: 612 solid + 306 phase = 918
@@ -146,10 +146,10 @@ Timestep 6: 0.006 (0.001)   Cells: 262   DoFs: 918
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.105063e+02
-1	138	0	3.115888e-01	1.003486e-03	0	1
-2	66	0	1.724594e-05	5.534841e-05	0	1
-3	0	0	1.914511e-12	1.110122e-07	0	1
-4	0	0	1.356538e-12	7.085559e-01	0	1
+1	131	0	3.116804e-01	1.003781e-03	0	1
+2	65	0	1.724100e-05	5.531628e-05	0	1
+3	0	0	1.942816e-12	1.126858e-07	0	1
+4	0	0	1.669389e-12	8.592623e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 6 time 0.007 bulk energy: 1.38613 crack energy: 0.0560609  Load x: 436.2
@@ -163,10 +163,10 @@ Timestep 7: 0.007 (0.001)   Cells: 262   DoFs: 918
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.059242e+02
-1	125	0	1.016210e-01	3.321771e-04	0	1
-2	66	0	7.496165e-07	7.376589e-06	0	1
-3	0	0	1.885161e-12	2.514834e-06	0	1
-4	0	0	1.594457e-12	8.457933e-01	0	1
+1	141	0	1.017135e-01	3.324793e-04	0	1
+2	63	0	7.881412e-07	7.748641e-06	0	1
+3	0	0	2.182548e-12	2.769235e-06	0	1
+4	0	0	1.728431e-12	7.919325e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 DoFs: 656 solid + 328 phase = 984
@@ -179,10 +179,10 @@ Timestep 7: 0.007 (0.001)   Cells: 280   DoFs: 984
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.159033e+02
-1	132	0	3.489103e+00	1.104485e-02	0	1
-2	70	0	2.064844e-03	5.917978e-04	0	1
-3	0	0	1.543712e-09	7.476168e-07	0	1
-4	0	0	1.901854e-12	1.232000e-03	0	1
+1	144	0	3.489106e+00	1.104485e-02	0	1
+2	66	0	2.064848e-03	5.917987e-04	0	1
+3	0	0	1.539170e-09	7.454154e-07	0	1
+4	0	0	2.321216e-12	1.508096e-03	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 7 time 0.008 bulk energy: 1.71428 crack energy: 0.0987655  Load x: 486.54
@@ -196,10 +196,10 @@ Timestep 8: 0.008 (0.001)   Cells: 280   DoFs: 984
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.040018e+02
-1	128	0	1.802241e-01	5.928387e-04	0	1
-2	69	0	7.896568e-06	4.381528e-05	0	1
-3	0	0	2.501655e-12	3.168028e-07	0	1
-4	0	0	1.949759e-12	7.793878e-01	0	1
+1	140	0	1.800491e-01	5.922633e-04	0	1
+2	69	0	8.430261e-06	4.682201e-05	0	1
+3	0	0	2.360125e-12	2.799587e-07	0	1
+4	0	0	2.057193e-12	8.716456e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 DoFs: 712 solid + 356 phase = 1068
@@ -212,10 +212,10 @@ Timestep 8: 0.008 (0.001)   Cells: 304   DoFs: 1068
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.049637e+02
-1	140	0	5.435944e-01	1.782489e-03	0	1
-2	70	0	2.108945e-03	3.879629e-03	0	1
-3	0	0	5.706499e-10	2.705855e-07	0	1
-4	0	0	2.679280e-12	4.695137e-03	0	1
+1	156	0	5.435357e-01	1.782296e-03	0	1
+2	70	0	2.108945e-03	3.880049e-03	0	1
+3	0	0	5.675940e-10	2.691364e-07	0	1
+4	0	0	2.589536e-12	4.562302e-03	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 8 time 0.009 bulk energy: 2.04198 crack energy: 0.168354  Load x: 533.065
@@ -229,10 +229,10 @@ Timestep 9: 0.009 (0.001)   Cells: 304   DoFs: 1068
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.021617e+02
-1	156	0	2.435491e-01	8.060226e-04	0	1
-2	64	0	8.530579e-05	3.502611e-04	0	1
-3	0	0	8.183905e-12	9.593611e-08	0	1
-4	0	0	2.621537e-12	3.203284e-01	0	1
+1	146	0	2.434248e-01	8.056112e-04	0	1
+2	70	0	7.991827e-05	3.283078e-04	0	1
+3	0	0	8.496387e-12	1.063134e-07	0	1
+4	0	0	2.787947e-12	3.281332e-01	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 DoFs: 782 solid + 391 phase = 1173
@@ -245,10 +245,10 @@ Timestep 9: 0.009 (0.001)   Cells: 337   DoFs: 1173
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.026062e+02
-1	166	0	2.764911e-01	9.136993e-04	0	1
-2	65	0	7.876004e-04	2.848556e-03	0	1
-3	0	0	1.712549e-10	2.174388e-07	0	1
-4	0	0	2.843992e-12	1.660678e-02	0	1
+1	161	0	2.763797e-01	9.133311e-04	0	1
+2	70	0	7.870349e-04	2.847659e-03	0	1
+3	0	0	9.351648e-11	1.188213e-07	0	1
+4	0	0	2.727310e-12	2.916395e-02	0	1
 	Newton iterations: 4 total linear iterations: 4
 
 No 9 time 0.01 bulk energy: 2.3282 crack energy: 0.281846  Load x: 570.671
@@ -262,15 +262,14 @@ Timestep 10: 0.01 (0.001)   Cells: 337   DoFs: 1173
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.017734e+02
-1	165	0	1.186551e+00	3.931929e-03	0	1
-2	124	0	4.341321e-03	3.658772e-03	0	1
-3	38	0	4.461402e-08	1.027660e-05	0	1
-4	31	0	3.665136e-12	8.215211e-05	0	1
-5	27	0	3.264035e-12	8.905631e-01	0	1
-6	25	0	2.922307e-12	8.953052e-01	0	1
-7	23	0	1.063603e-04	3.639601e+07	10	1
-8	23	0	2.982071e-12	2.803744e-08	0	1
-	Newton iterations: 8 total linear iterations: 8
+1	162	0	1.186583e+00	3.932035e-03	0	1
+2	127	0	4.398374e-03	3.706755e-03	0	1
+3	39	0	4.457866e-08	1.013526e-05	0	1
+4	31	0	3.780735e-12	8.481042e-05	0	1
+5	27	0	2.917285e-12	7.716186e-01	0	1
+6	25	0	8.725690e-04	2.991031e+08	10	1
+7	25	0	3.178152e-12	3.642293e-09	0	1
+	Newton iterations: 7 total linear iterations: 7
 
 DoFs: 1004 solid + 502 phase = 1506
 MESH CHANGED!
@@ -282,17 +281,15 @@ Timestep 10: 0.01 (0.001)   Cells: 442   DoFs: 1506
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			3.026414e+02
-1	214	0	1.198069e+00	3.958709e-03	0	1
-2	127	0	4.343800e-03	3.625667e-03	0	1
-3	38	0	4.771113e-08	1.098373e-05	0	1
-4	31	0	3.551858e-12	7.444506e-05	0	1
-5	27	0	3.176828e-12	8.944130e-01	0	1
-6	25	0	3.113055e-12	9.799255e-01	0	1
-7	23	0	9.043394e-05	2.904990e+07	10	1
-8	23	0	3.147164e-12	3.480069e-08	0	1
-	Newton iterations: 8 total linear iterations: 8
+1	210	0	1.198101e+00	3.958814e-03	0	1
+2	129	0	4.400960e-03	3.673280e-03	0	1
+3	37	0	4.880840e-08	1.109040e-05	0	1
+4	29	0	3.338240e-12	6.839478e-05	0	1
+5	25	0	1.057130e-03	3.166730e+08	10	1
+6	25	0	3.686281e-12	3.487065e-09	0	1
+	Newton iterations: 6 total linear iterations: 6
 
-No 10 time 0.011 bulk energy: 2.50307 crack energy: 0.476857  Load x: 590.289
+No 10 time 0.011 bulk energy: 2.50307 crack energy: 0.476855  Load x: 590.289
 Write solution 11
 	as output-miehe_shear_1-np1/solution_miehe_shear_ref_adapt_4_1_dt_1e-4_00011.visit
 
