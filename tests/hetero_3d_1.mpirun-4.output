@@ -30,9 +30,9 @@ Timestep 0: 0 (0.01)   Cells: 932   DoFs: 5288
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			2.772590e+01
-1	178	0	4.947208e-03	1.784327e-04	0	6
-2	36	0	3.637191e-04	7.352008e-02	0	2
-3	36	0	6.343362e-08	1.744028e-04	0	5
+1	142	0	4.924615e-03	1.776179e-04	0	6
+2	36	0	3.325017e-04	6.751832e-02	0	2
+3	36	0	4.742874e-08	1.426421e-04	0	5
 	Newton iterations: 3 total linear iterations: 13
 
 No 0 time 0.01 bulk energy: 0.00959926 crack energy: 22.1998
@@ -49,8 +49,8 @@ It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 1	839	0	4.659250e-02	4.720263e-04	0	6
 2	639	0	2.335913e-06	5.013496e-05	0	5
 3	534	0	1.032101e-06	4.418405e-01	0	1
-4	520	0	6.637548e-08	6.431103e-02	0	2
-5	520	0	8.569504e-13	1.291065e-05	0	6
+4	520	0	6.637547e-08	6.431102e-02	0	2
+5	520	0	8.579679e-13	1.292598e-05	0	6
 	Newton iterations: 5 total linear iterations: 20
 
 No 1 time 0.02 bulk energy: 0.626501 crack energy: 22.207

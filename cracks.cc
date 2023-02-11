@@ -1586,7 +1586,8 @@ FracturePhaseFieldProblem<dim>::setup_system ()
 
   std::vector<unsigned int> sub_blocks (introspection.n_components, 0);
   sub_blocks[introspection.component_indices.phase_field] = 1;
-  DoFRenumbering::component_wise (dof_handler, sub_blocks);
+  if (!direct_solver)
+    DoFRenumbering::component_wise (dof_handler, sub_blocks);
 
   constant_modes.clear();
   DoFTools::extract_constant_modes(dof_handler,
