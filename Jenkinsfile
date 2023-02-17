@@ -121,7 +121,7 @@ pipeline {
     stage ("9.4") {
         agent  {
           docker {
-            image 'tjhei/dealii:v9.4.1-full-v9.4.1-r1-ubuntu20.04'
+            image 'tjhei/dealii:v9.4.2-full-v9.4.2-r3-ubuntu20.04'
           }
         }
 
