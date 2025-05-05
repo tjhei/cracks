@@ -64,7 +64,8 @@ pipeline {
         stages {
           stage("indent") {
             steps {
-                sh './contrib/indent'
+                sh './contrib/install-astyle'
+                sh 'PATH=${HOME}/bin:{$PATH} ./contrib/indent'
                 sh 'git diff > changes.diff'
                 archiveArtifacts artifacts: 'changes.diff', fingerprint: true
                 sh '''

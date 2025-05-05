@@ -1,0 +1,5 @@
+#/bin/bash
+
+wget https://github.com/tjhei/astyle/releases/download/v2.04/astyle_2.04_linux.tar.gz \
+&& tar xf astyle_2.04_linux.tar.gz \
+&& cd astyle/build/gcc && make -j 4 && make prefix=$HOME install
