@@ -3458,7 +3458,7 @@ FracturePhaseFieldProblem<dim>::compute_cod (
   const double eval_line)
 {
 
-  const QGauss<dim - 1> face_quadrature_formula(3);
+  const QGauss<dim - 1> face_quadrature_formula(fe.degree+2);
   FEFaceValues<dim> fe_face_values(fe, face_quadrature_formula,
                                    update_values | update_quadrature_points | update_gradients
                                    | update_normal_vectors | update_JxW_values);
