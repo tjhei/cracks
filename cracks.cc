@@ -26,13 +26,7 @@
 #include <deal.II/lac/block_sparse_matrix.h>
 #include <deal.II/lac/sparse_direct.h>
 
-#if DEAL_II_VERSION_GTE(9,1,0)
-#  include <deal.II/lac/affine_constraints.h>
-using ConstraintMatrix = dealii::AffineConstraints<double>;
-#else
-#  include <deal.II/lac/constraint_matrix.h>
-#  include <deal.II/grid/tria_boundary_lib.h>
-#endif
+#include <deal.II/lac/affine_constraints.h>
 
 namespace compatibility
 {
@@ -1043,7 +1037,7 @@ class FracturePhaseFieldProblem
 
     void assemble_diag_mass_matrix();
 
-    void set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints);
+    void set_boundary_conditions (const double time, const bool initial_step, AffineConstraints<double> &constraints);
     void set_initial_bc (const double time);
     void set_newton_bc ();
 
@@ -1086,8 +1080,8 @@ class FracturePhaseFieldProblem
 
     FESystem<dim> fe;
     DoFHandler<dim> dof_handler;
-    ConstraintMatrix constraints_update;
-    ConstraintMatrix constraints_hanging_nodes;
+    AffineConstraints<double> constraints_update;
+    AffineConstraints<double> constraints_hanging_nodes;
 
     LA::MPI::BlockSparseMatrix system_pde_matrix;
     LA::MPI::BlockVector solution, newton_update,
@@ -1641,7 +1635,7 @@ FracturePhaseFieldProblem<dim>::setup_system ()
     constraints_update.reinit(relevant_set);
 
     set_newton_bc();
-    constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
+    constraints_update.merge(constraints_hanging_nodes, AffineConstraints<double>::right_object_wins);
     constraints_update.close();
   }
 
@@ -2570,7 +2564,7 @@ FracturePhaseFieldProblem<dim>::assemble_diag_mass_matrix ()
 // otherwise they are homogeneous conditions as we solve the Newton system in update form.
 template <int dim>
 void
-FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, const bool initial_step, ConstraintMatrix &constraints)
+FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, const bool initial_step, AffineConstraints<double> &constraints)
 {
   compatibility::ZeroFunction<dim> f_zero(introspection.n_components);
 
@@ -2704,7 +2698,7 @@ template <int dim>
 void
 FracturePhaseFieldProblem<dim>::set_initial_bc (const double time)
 {
-  ConstraintMatrix constraints;
+  AffineConstraints<double> constraints;
   set_boundary_conditions(time, true, constraints);
   constraints.close();
   constraints.distribute(solution);
@@ -2910,7 +2904,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
       }
 
       set_newton_bc();
-      constraints_update.merge(constraints_hanging_nodes, ConstraintMatrix::right_object_wins);
+      constraints_update.merge(constraints_hanging_nodes, AffineConstraints<double>::right_object_wins);
       constraints_update.close();
 
       int is_my_set_changed = (active_set == active_set_old) ? 0 : 1;
@@ -4183,7 +4177,7 @@ FracturePhaseFieldProblem<dim>::run ()
     {
       pcout << "Prerefinement step with h= " << min_cell_diameter << std::endl;
 
-      ConstraintMatrix constraints;
+      AffineConstraints<double> constraints;
       constraints.close();
 
       if (test_case == TestCase::sneddon)
@@ -4239,7 +4233,7 @@ FracturePhaseFieldProblem<dim>::run ()
 
 
   {
-    ConstraintMatrix constraints;
+    AffineConstraints<double> constraints;
     constraints.close();
 
     if (test_case == TestCase::sneddon)

@@ -37,7 +37,8 @@ A preprint is available here: https://arxiv.org/abs/1806.09924
 # How to run
 
 You need to install deal.II (see http://www.dealii.org) with external
-dependencies p4est and Trilinos. Then configure with:
+dependencies p4est and Trilinos. Minimum required version for deal.II is 9.5.
+Then configure with:
 
 ```
   cmake -D DEAL_II_DIR=/your/dealii-installation/ .
