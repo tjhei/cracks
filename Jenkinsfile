@@ -6,7 +6,7 @@ pipeline {
     stage("check") {
       agent  {
           docker {
-            image 'tjhei/dealii:v8.5.1-full-v8.5.1-r1-gcc5'
+            image 'dealii/dealii:v9.6.0-jammy'
               }
       }
 
@@ -29,49 +29,10 @@ pipeline {
       }
     }
 
-
-    stage ("9.0") {
+    stage ("9.6") {
         agent  {
           docker {
-            image 'tjhei/dealii:v9.0.1-full-v9.0.1-r5-gcc5'
-          }
-        }
-
-        stages {
-          stage("indent") {
-            steps {
-                sh './contrib/indent'
-                sh 'git diff > changes.diff'
-                archiveArtifacts artifacts: 'changes.diff', fingerprint: true
-                sh '''
-                    git diff --exit-code || \
-                    { echo "Please check indentation!"; exit 1; }
-                '''
-                githubNotify context: 'indent', description: '',  status: 'SUCCESS'
-            }
-          }
-
-          stage("build") {
-                steps {
-                    sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
-                    sh 'make -j 4'
-                }
-          }
-
-          stage('test') {
-                steps {
-                    sh './cracks'
-                }
-          }
-        }
-
-        post { cleanup { cleanWs() } }
-    }
-
-    stage ("9.1") {
-        agent  {
-          docker {
-            image 'tjhei/dealii:v9.1.1-full-v9.1.1-r1-clang6'
+            image 'dealii/dealii:v9.6.0-jammy'
           }
         }
 
@@ -93,42 +54,18 @@ pipeline {
         post { cleanup { cleanWs() } }
     }
 
-    stage ("9.2") {
+    stage ("9.5") {
         agent  {
           docker {
-            image 'tjhei/dealii:v9.2.0-full-v9.2.0-r2-gcc5'
-          }
-        }
-
-        stages {
-            stage("build") {
-                steps {
-                    sh 'cmake -D CMAKE_CXX_FLAGS="-Werror" .'
-                    sh 'make -j 4'
-                }
-            }
-
-            stage('test') {
-                steps {
-                    sh './cracks'
-                }
-            }
-        }
-
-        post { cleanup { cleanWs() } }
-    }
-
-    stage ("9.4") {
-        agent  {
-          docker {
-            image 'tjhei/dealii:v9.4.2-full-v9.4.2-r3-ubuntu20.04'
+            image 'dealii/dealii:v9.5.1-jammy'
           }
         }
 
         stages {
           stage("indent") {
             steps {
-                sh './contrib/indent'
+                sh './contrib/install-astyle'
+                sh 'PATH=${HOME}/bin:{$PATH} ./contrib/indent'
                 sh 'git diff > changes.diff'
                 archiveArtifacts artifacts: 'changes.diff', fingerprint: true
                 sh '''

@@ -220,7 +220,7 @@ class BitmapFunction : public Function<dim>
 
     virtual
     double value (const Point<dim> &p,
-                  const unsigned int /*component*/) const
+                  const unsigned int /*component*/) const override
     {
       double x = (p(0)-x1)/(x2-x1);
       double y = (p(1)-y1)/(y2-y1);
@@ -367,11 +367,11 @@ class InitialValuesSneddon : public Function<dim>
 
     virtual double
     value (
-      const Point<dim> &p, const unsigned int component = 0) const;
+      const Point<dim> &p, const unsigned int component = 0) const override;
 
     virtual void
     vector_value (
-      const Point<dim> &p, Vector<double> &value) const;
+      const Point<dim> &p, Vector<double> &value) const override;
 
   private:
     const unsigned int n_components;
@@ -429,7 +429,7 @@ class ExactPhiSneddon : public Function<dim>
 
     virtual double
     value (
-      const Point<dim> &p, const unsigned int component = 0) const
+      const Point<dim> &p, const unsigned int component = 0) const override
     {
       (void)component;
 
@@ -467,7 +467,7 @@ class SneddonExactPostProc : public DataPostprocessorScalar<dim>
     {}
 
     void evaluate_vector_field (const DataPostprocessorInputs::Vector<dim> &input_data,
-                                std::vector<Vector<double> > &computed_quantities) const
+                                std::vector<Vector<double> > &computed_quantities) const override
     {
       for (unsigned int i=0; i<computed_quantities.size(); ++i)
         computed_quantities[i][0] = exact.value(input_data.evaluation_points[i]);
@@ -492,11 +492,11 @@ class InitialValuesMultipleHomo : public Function<dim>
 
     virtual double
     value (
-      const Point<dim> &p, const unsigned int component = 0) const;
+      const Point<dim> &p, const unsigned int component = 0) const override;
 
     virtual void
     vector_value (
-      const Point<dim> &p, Vector<double> &value) const;
+      const Point<dim> &p, Vector<double> &value) const override;
 
   private:
     const unsigned int n_components;
@@ -574,11 +574,11 @@ class InitialValuesMultipleHet : public Function<dim>
 
     virtual double
     value (
-      const Point<dim> &p, const unsigned int component = 0) const;
+      const Point<dim> &p, const unsigned int component = 0) const override;
 
     virtual void
     vector_value (
-      const Point<dim> &p, Vector<double> &value) const;
+      const Point<dim> &p, Vector<double> &value) const override;
 
   private:
     const unsigned int n_components;
@@ -667,11 +667,11 @@ class InitialValuesTensionOrShear : public Function<dim>
 
     virtual double
     value (
-      const Point<dim> &p, const unsigned int component = 0) const;
+      const Point<dim> &p, const unsigned int component = 0) const override;
 
     virtual void
     vector_value (
-      const Point<dim> &p, Vector<double> &value) const;
+      const Point<dim> &p, Vector<double> &value) const override;
 
   private:
     const unsigned int n_components;
@@ -717,11 +717,11 @@ class InitialValuesNoCrack : public Function<dim>
 
     virtual double
     value (
-      const Point<dim> &p, const unsigned int component = 0) const;
+      const Point<dim> &p, const unsigned int component = 0) const override;
 
     virtual void
     vector_value (
-      const Point<dim> &p, Vector<double> &value) const;
+      const Point<dim> &p, Vector<double> &value) const override;
 
   private:
     const unsigned int n_components;
@@ -764,10 +764,10 @@ class BoundaryTensionTest : public Function<dim>
     {}
 
     virtual double value (const Point<dim>   &p,
-                          const unsigned int  component = 0) const;
+                          const unsigned int  component = 0) const override;
 
     virtual void vector_value (const Point<dim> &p,
-                               Vector<double>   &value) const;
+                               Vector<double>   &value) const override;
 
   private:
     const unsigned int n_components;
@@ -825,10 +825,11 @@ class BoundaryShearTest : public Function<dim>
     {}
 
     virtual double value (const Point<dim>   &p,
-                          const unsigned int  component = 0) const;
+                          const unsigned int  component = 0) const override;
+
 
     virtual void vector_value (const Point<dim> &p,
-                               Vector<double>   &value) const;
+                               Vector<double>   &value) const override;
 
   private:
     double _time;
@@ -880,10 +881,10 @@ class BoundaryThreePoint : public Function<dim>
     {}
 
     virtual double value (const Point<dim>   &p,
-                          const unsigned int  component = 0) const;
+                          const unsigned int  component = 0) const override;
 
     virtual void vector_value (const Point<dim> &p,
-                               Vector<double>   &value) const;
+                               Vector<double>   &value) const override;
 
   private:
     double _time;
