@@ -1163,7 +1163,7 @@ class FracturePhaseFieldProblem
     double line_search_damping;
     double decompose_stress_rhs, decompose_stress_matrix;
     std::string output_folder;
-    std::string filename_basis;
+    std::string filename_base;
     double old_timestep, old_old_timestep;
     bool use_old_timestep_pf;
 
@@ -1468,7 +1468,7 @@ FracturePhaseFieldProblem<dim>::set_runtime_parameters ()
     = prm.get_double("value phase field for refinement");
 
   output_folder = prm.get ("Output directory");
-  filename_basis  = prm.get ("Output filename");
+  filename_base = prm.get ("Output filename");
 
   prm.leave_subsection();
 
@@ -3212,14 +3212,12 @@ FracturePhaseFieldProblem<dim>::output_results () const
 
   data_out.build_patches();
 
-  // Filename basis comes from parameter file
-  std::ostringstream filename;
-
   pcout << "Write solution " << refinement_cycle << std::endl;
 
+  std::ostringstream filename;
   filename << output_folder
            << "/"
-           << filename_basis
+           << filename_base
            << Utilities::int_to_string(refinement_cycle, 5)
            << "."
            << Utilities::int_to_string(triangulation.locally_owned_subdomain(), 4)
@@ -3234,15 +3232,15 @@ FracturePhaseFieldProblem<dim>::output_results () const
       for (unsigned int i = 0; i < Utilities::MPI::n_mpi_processes(mpi_com);
            ++i)
         filenames.push_back(
-          filename_basis + Utilities::int_to_string(refinement_cycle, 5)
+          filename_base + Utilities::int_to_string(refinement_cycle, 5)
           + "." + Utilities::int_to_string(i, 4) + ".vtu");
 
-      std::string master_name = filename_basis + Utilities::int_to_string(refinement_cycle, 5)
+      std::string master_name = filename_base + Utilities::int_to_string(refinement_cycle, 5)
                                 + ".pvtu";
       std::ofstream master_output((output_folder + "/" + master_name).c_str());
       data_out.write_pvtu_record(master_output, filenames);
 
-      std::string visit_master_filename = (output_folder + "/" + filename_basis
+      std::string visit_master_filename = (output_folder + "/" + filename_base
                                            + Utilities::int_to_string(refinement_cycle, 5) + ".visit");
       std::ofstream visit_master(visit_master_filename.c_str());
       DataOutBase::write_visit_record(visit_master, filenames);
