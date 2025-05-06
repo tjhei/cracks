@@ -4177,9 +4177,6 @@ FracturePhaseFieldProblem<dim>::run ()
     {
       pcout << "Prerefinement step with h= " << min_cell_diameter << std::endl;
 
-      AffineConstraints<double> constraints;
-      constraints.close();
-
       if (test_case == TestCase::sneddon)
         {
           VectorTools::interpolate(dof_handler,
@@ -4233,9 +4230,6 @@ FracturePhaseFieldProblem<dim>::run ()
 
 
   {
-    AffineConstraints<double> constraints;
-    constraints.close();
-
     if (test_case == TestCase::sneddon)
       {
         VectorTools::interpolate(dof_handler,
