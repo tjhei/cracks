@@ -105,6 +105,16 @@ namespace compatibility
         start += dofs_per_block[i];
       }
   }
+
+  void reinit(AffineConstraints<double> &constraints, const IndexSet &owned, const IndexSet &relevant)
+  {
+#if DEAL_II_VERSION_GTE(9,6,0)
+    constraints.reinit(owned, relevant);
+#else
+    (void)owned;
+    constraints.reinit(relevant);
+#endif
+  }
 }
 
 
@@ -1624,13 +1634,13 @@ FracturePhaseFieldProblem<dim>::setup_system ()
   compatibility::split_by_block(dofs_per_block, relevant_set, partition_relevant);
 
   {
-    constraints_hanging_nodes.reinit(dof_handler.locally_owned_dofs(), relevant_set);
+    compatibility::reinit(constraints_hanging_nodes, dof_handler.locally_owned_dofs(), relevant_set);
     DoFTools::make_hanging_node_constraints(dof_handler,
                                             constraints_hanging_nodes);
     constraints_hanging_nodes.close();
   }
   {
-    constraints_update.reinit(dof_handler.locally_owned_dofs(), relevant_set);
+    compatibility::reinit(constraints_update, dof_handler.locally_owned_dofs(), relevant_set);
 
     set_newton_bc();
     constraints_update.merge(constraints_hanging_nodes, AffineConstraints<double>::right_object_wins);
@@ -2819,7 +2829,7 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
         // compute new active set
         active_set.clear();
         active_set.set_size(dof_handler.n_dofs());
-        constraints_update.reinit(dof_handler.locally_owned_dofs(), relevant_set);
+        compatibility::reinit(constraints_update, dof_handler.locally_owned_dofs(), relevant_set);
 
         unsigned int owned_active_set_dofs = 0;
 
