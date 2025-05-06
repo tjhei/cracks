@@ -31,8 +31,8 @@ Timestep 0: 0 (1)   Cells: 124   DoFs: 453
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			1.491639e+01
 1	22	0	2.418693e-06	1.621500e-07	0	2
-2	9	0	6.008111e-13	2.484032e-07	0	1
-3	9	0	4.562683e-15	7.594205e-03	0	1
+2	9	0	6.019237e-13	2.488632e-07	0	1
+3	9	0	4.561493e-15	7.578192e-03	0	1
 	Newton iterations: 3 total linear iterations: 4
 
 No 0 time 1 bulk energy: 4.28283e-06 crack energy: 8.25552
@@ -47,12 +47,11 @@ Timestep 1: 1 (1)   Cells: 124   DoFs: 453
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			2.998946e-03
-1	70	0	9.242469e-06	3.081906e-03	0	2
-2	98	0	2.471748e-15	2.674338e-10	0	1
-3	84	0	2.351448e-15	9.513300e-01	0	1
-4	77	0	6.061057e-07	2.577585e+08	10	1
-5	77	0	2.837127e-15	4.680912e-09	0	1
-	Newton iterations: 5 total linear iterations: 6
+1	71	0	1.091400e-05	3.639279e-03	0	2
+2	100	0	2.991957e-15	2.741393e-10	0	1
+3	85	0	1.039362e-05	3.473853e+09	10	1
+4	85	0	3.251521e-15	3.128383e-10	0	1
+	Newton iterations: 4 total linear iterations: 5
 
 No 1 time 2 bulk energy: 6.78092e-05 crack energy: 8.25552
 Write solution 2
@@ -66,11 +65,11 @@ Timestep 2: 2 (1)   Cells: 124   DoFs: 453
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
 0			2.206733e-03
-1	98	0	7.292643e-06	3.304724e-03	0	2
-2	129	0	1.014718e-15	1.391427e-10	0	1
-3	115	0	1.149109e-06	1.132442e+09	10	1
-4	115	0	1.674266e-15	1.457012e-09	0	1
-	Newton iterations: 4 total linear iterations: 5
+1	103	0	5.109682e-06	2.315496e-03	0	2
+2	124	0	1.793619e-15	3.510235e-10	0	1
+3	115	0	1.423864e-15	7.938501e-01	0	1
+4	115	0	1.213870e-15	8.525180e-01	0	2
+	Newton iterations: 4 total linear iterations: 6
 
 No 2 time 3 bulk energy: 2.19221e-05 crack energy: 8.25552
 Write solution 3
@@ -83,16 +82,16 @@ Timestep 3: 3 (1)   Cells: 124   DoFs: 453
 -----------------------------------------------------------------------
 
 It.	#A.Set	#CycDoF	Residual	Reduction	LSrch	#LinIts
-0			1.239080e-08
-1	121	0	1.353274e-15	1.092161e-07	0	2
-2	111	0	1.622915e-09	1.199250e+06	10	1
-3	111	0	1.487312e-15	9.164451e-07	0	1
+0			1.248424e-08
+1	127	0	1.262016e-15	1.010887e-07	0	2
+2	115	0	1.215785e-11	9.633671e+03	10	1
+3	115	0	1.721725e-15	1.416143e-04	0	1
 	Newton iterations: 3 total linear iterations: 4
 
 No 3 time 4 bulk energy: 2.19219e-05 crack energy: 8.25552
 Write solution 4
 	as output-sneddon_2d_1-np1/solution_00004.visit
-Timestep difference linfty: 9.90467e-09
+Timestep difference linfty: 9.9606e-09
 TCV: value= 0.0418879 exact= 0.00603186 error= 0.035856
 writing cod-01b.txt
 -1  0.00245477
@@ -107,7 +106,7 @@ Refinement cycle 0
 
 DoFs: 518 solid + 259 phase = 777
 
-Finishing time step loop: 9.90467e-09
+Finishing time step loop: 9.9606e-09
 
 
 +---------------------------------------------+------------+------------+
