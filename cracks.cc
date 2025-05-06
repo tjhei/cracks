@@ -105,6 +105,16 @@ namespace compatibility
         start += dofs_per_block[i];
       }
   }
+
+  void reinit(AffineConstraints<double> &constraints, const IndexSet &owned, const IndexSet &relevant)
+  {
+#if DEAL_II_VERSION_GTE(9,6,0)
+    constraints.reinit(owned, relevant);
+#else
+    (void)owned;
+    constraints.reinit(relevant);
+#endif
+  }
 }
 
 
@@ -1094,6 +1104,7 @@ class FracturePhaseFieldProblem
     TimerOutput timer;
 
     IndexSet active_set;
+    IndexSet relevant_set;
 
     Function<dim> *func_emodulus;
 
@@ -1617,22 +1628,19 @@ FracturePhaseFieldProblem<dim>::setup_system ()
   partition.clear();
   compatibility::split_by_block(dofs_per_block, dof_handler.locally_owned_dofs(), partition);
 
-  IndexSet relevant_set;
-  DoFTools::extract_locally_relevant_dofs(dof_handler, relevant_set);
+  relevant_set = DoFTools::extract_locally_relevant_dofs(dof_handler);
 
   partition_relevant.clear();
   compatibility::split_by_block(dofs_per_block, relevant_set, partition_relevant);
 
   {
-    constraints_hanging_nodes.clear();
-    constraints_hanging_nodes.reinit(relevant_set);
+    compatibility::reinit(constraints_hanging_nodes, dof_handler.locally_owned_dofs(), relevant_set);
     DoFTools::make_hanging_node_constraints(dof_handler,
                                             constraints_hanging_nodes);
     constraints_hanging_nodes.close();
   }
   {
-    constraints_update.clear();
-    constraints_update.reinit(relevant_set);
+    compatibility::reinit(constraints_update, dof_handler.locally_owned_dofs(), relevant_set);
 
     set_newton_bc();
     constraints_update.merge(constraints_hanging_nodes, AffineConstraints<double>::right_object_wins);
@@ -2821,7 +2829,8 @@ double FracturePhaseFieldProblem<dim>::newton_active_set()
         // compute new active set
         active_set.clear();
         active_set.set_size(dof_handler.n_dofs());
-        constraints_update.clear();
+        compatibility::reinit(constraints_update, dof_handler.locally_owned_dofs(), relevant_set);
+
         unsigned int owned_active_set_dofs = 0;
 
         LA::MPI::BlockVector solution_relevant(partition, partition_relevant, mpi_com);
