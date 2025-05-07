@@ -1,8 +1,8 @@
-/**
+/*
   This code is licensed under the "GNU GPL version 2 or later". See
   LICENSE file or https://www.gnu.org/licenses/gpl-2.0.html
 
-  Copyright 2013-2020: Thomas Wick and Timo Heister
+  Copyright 2013-2025: Thomas Wick and Timo Heister
 */
 
 // Main features of this crack phase-field program
@@ -10,7 +10,7 @@
 // 1. Quasi-monolithic formulation for the displacement-phase-field system
 // 2. Primal dual active set strategy to treat crack irreversibility
 // 3. Predictor-corrector mesh adaptivity
-// 4. Parallel computing using MPI, p4est, and trilinos
+// 4. Parallel computing using MPI, p4est, and Trilinos
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/logstream.h>
@@ -27,12 +27,6 @@
 #include <deal.II/lac/sparse_direct.h>
 
 #include <deal.II/lac/affine_constraints.h>
-
-namespace compatibility
-{
-  template<int dim>
-  using ZeroFunction = dealii::Functions::ZeroFunction<dim>;
-}
 
 // This makes IDEs like QtCreator happy (note that this is defined in cmake):
 #ifndef SOURCE_DIR
@@ -2574,7 +2568,7 @@ template <int dim>
 void
 FracturePhaseFieldProblem<dim>::set_boundary_conditions (const double time, const bool initial_step, AffineConstraints<double> &constraints)
 {
-  compatibility::ZeroFunction<dim> f_zero(introspection.n_components);
+  Functions::ZeroFunction<dim> f_zero(introspection.n_components);
 
   if (dim == 2)
     {
@@ -4586,14 +4580,11 @@ FracturePhaseFieldProblem<dim>::run ()
         << std::endl;
 }
 
-// The main function looks almost the same
-// as in all other deal.II tuturial steps.
-int
-main (
-  int argc, char *argv[])
+
+
+int main(int argc, char *argv[])
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
-
 
   if (argc==1) // run unit tests
     {
